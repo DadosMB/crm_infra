@@ -1,11 +1,22 @@
-<div align="center">
+# CRM Infra MenuBrands
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Sistema inteligente de gestão de Ordens de Serviço e Finanças desenvolvido para a infraestrutura da MenuBrands.
 
-  <h1>Built with AI Studio</h2>
+## Tecnologias Utilizadas
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+- **React**: Framework para construção da interface.
+- **Tailwind CSS**: Estilização moderna e responsiva.
+- **Recharts**: Gráficos para dashboards analíticos.
+- **Lucide React**: Ícones SVG leves e flexíveis.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Funcionalidades
 
-</div>
+- **Dashboard**: Visão geral de KPIs e indicadores.
+- **Kanban de OS**: Gestão visual de ordens de serviço por status.
+- **Gestão Financeira**: Controle de gastos por unidade e categoria.
+- **Relatórios**: Análise de dados históricos e exportação.
+- **Gestão de Tarefas**: Organização pessoal e de equipe.
+
+## Créditos
+
+Desenvolvido pela equipe de Back-End da MenuBrands.
