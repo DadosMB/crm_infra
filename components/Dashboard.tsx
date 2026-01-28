@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { ServiceOrder, Expense, OSStatus, Unit } from '../types';
@@ -203,7 +204,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ orders, expenses, isDarkMo
       {/* Main Charts Section - Stacked for 768p Notebooks */}
       <div className="flex flex-col gap-8">
         
-        {/* Chart 1: OS Status by Unit (Horizontal) */}
+        {/* Chart 1: OS Volume by Unit (Horizontal) */}
         <div className="bg-white dark:bg-slate-800 p-0 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 flex flex-col hover:shadow-md transition-all duration-300">
           <div className="flex justify-between items-center p-6 border-b dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 rounded-t-xl">
              <div className="flex items-center gap-3">
@@ -224,7 +225,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ orders, expenses, isDarkMo
           </div>
           
           <div className="w-full h-[320px] p-6">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
               <BarChart data={filteredOrdersByUnit} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={true} stroke={isDarkMode ? '#334155' : '#f0f0f0'} />
                 <XAxis type="number" hide />
@@ -265,7 +266,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ orders, expenses, isDarkMo
           </div>
 
           <div className="w-full h-[320px] p-6">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
               <BarChart data={filteredExpenseByUnit} layout="vertical" margin={{ top: 5, right: 50, left: 40, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke={isDarkMode ? '#334155' : '#f0f0f0'} />
                 <XAxis type="number" tickFormatter={(value) => `R$ ${value}`} tick={{fontSize: 10, fill: '#94a3b8'}} />
@@ -301,9 +302,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ orders, expenses, isDarkMo
              </div>
 
              <div className="flex flex-row items-center justify-center flex-1 min-h-0 p-4 gap-2 w-full">
-                {/* Chart Side */}
-                <div className="relative w-1/2 h-full flex items-center justify-center">
-                    <ResponsiveContainer width="100%" height="100%">
+                {/* Chart Side - Fixed height to avoid -1 issues */}
+                <div className="relative w-1/2 h-[220px] flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
                         <PieChart>
                         <Pie
                             data={statusData}

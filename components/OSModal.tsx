@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ServiceOrder, OSStatus, OSPriority, Unit, OSType, HistoryLog, Expense, User, ExpenseCategory, PaymentMethod, Supplier } from '../types';
 import { USERS } from '../constants';
-import { X, Save, MessageSquare, Calendar, ArrowRightLeft, Plus, DollarSign, Trash2, AlertOctagon, Send, Clock, MapPin, Wrench, Paperclip, User as UserIcon, Lock, Search } from 'lucide-react';
+import { X, Save, MessageSquare, Calendar, ArrowRightLeft, Plus, DollarSign, Trash2, AlertOctagon, Send, Clock, MapPin, Wrench, Paperclip, User as UserIcon, Lock, Search, Check } from 'lucide-react';
 
 interface OSModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface OSModalProps {
   currentUser: User;
   suppliers?: Supplier[];
   onAddSupplier?: (supplier: Supplier) => void;
+  isMobile?: boolean;
 }
 
 const STATUS_STYLES: Record<OSStatus, string> = {
@@ -24,7 +26,7 @@ const STATUS_STYLES: Record<OSStatus, string> = {
     [OSStatus.CANCELADA]: 'bg-red-100 text-red-700 border-red-200 shadow-[0_0_10px_rgba(239,68,68,0.3)]',
 };
 
-export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave, expenses, onAddExpense, onDeleteExpense, currentUser, suppliers = [], onAddSupplier }) => {
+export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave, expenses, onAddExpense, onDeleteExpense, currentUser, suppliers = [], onAddSupplier, isMobile = false }) => {
   const [formData, setFormData] = useState<Partial<ServiceOrder>>({});
   const [activeTab, setActiveTab] = useState<'details' | 'history' | 'finance'>('details');
   
@@ -53,7 +55,6 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
   const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
   const supplierDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Click Outside Handler for Dropdown
   useEffect(() => {
       function handleClickOutside(event: MouseEvent) {
           if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(event.target as Node)) {
@@ -64,7 +65,6 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
       return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Initialize Data
   useEffect(() => {
     if (isOpen) {
         if (order) {
@@ -77,7 +77,7 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
                 unit: Unit.ALDEOTA,
                 type: OSType.CORRETIVA,
                 dateOpened: new Date().toISOString(),
-                ownerId: currentUser.id,
+                ownerId: currentUser.id, // Defaults to current user
                 history: [],
                 title: '',
                 description: ''
@@ -98,7 +98,6 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
     }
   }, [isOpen, order, currentUser]);
 
-  // Auto-scroll chat
   useEffect(() => {
       if (activeTab === 'history' && scrollRef.current) {
           scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -107,17 +106,16 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
 
   if (!isOpen) return null;
 
-  // Derived Data
   const linkedExpenses = expenses.filter(e => e.linkedOSId === formData.id);
   const totalCost = linkedExpenses.reduce((acc, cur) => acc + cur.value, 0);
   const owner = USERS.find(u => u.id === formData.ownerId);
   const isEditing = !!order; 
   const isClosedStatus = formData.status === OSStatus.CONCLUIDA || formData.status === OSStatus.CANCELADA;
   
-  // Read-Only Logic: If Archived OR Status is Concluded/Cancelled
-  const isReadOnly = formData.archived || (isEditing && isClosedStatus);
+  // Read-Only if Archived OR Status Closed OR Mobile OR (Strictly if user is not owner/admin? No, user should see details but maybe not edit if not owner. Prompt says user only SEES their own, so if they see it, they own it).
+  const isReadOnly = formData.archived || (isEditing && isClosedStatus) || isMobile;
 
-  // Filter Logic for Supplier Dropdown
+  // Filter Suppliers
   const filteredSuppliersList = suppliers?.filter(s =>
     s.name.toLowerCase().includes((newExpenseData.supplier || '').toLowerCase()) ||
     s.category.toLowerCase().includes((newExpenseData.supplier || '').toLowerCase())
@@ -130,32 +128,26 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
 
   const handleQuickAddSupplier = () => {
       if (!newExpenseData.supplier || !onAddSupplier) return;
-      
       const newSup: Supplier = {
           id: `sup-${Date.now()}`,
           name: newExpenseData.supplier,
-          category: 'Geral', // Default category
+          category: 'Geral',
           contact: ''
       };
-      
       onAddSupplier(newSup);
       setIsSupplierDropdownOpen(false);
   };
 
-  // Handlers
   const handleSave = () => {
-    if (isReadOnly) return; // Prevent save if read-only
+    if (isReadOnly) return;
 
     if (!formData.title) {
       alert("Preencha o Título da OS");
       return;
     }
 
-    // Handle Closing Date Logic
-    // Fix: Ensure dates coming from date inputs (YYYY-MM-DD) are saved as noon UTC to avoid timezone issues
     let finalDateClosed = formData.dateClosed;
     
-    // Process dateClosed if it exists and looks like a YYYY-MM-DD string (length 10)
     if (finalDateClosed && finalDateClosed.length === 10) {
         finalDateClosed = new Date(finalDateClosed + 'T12:00:00').toISOString();
     } else if (isClosedStatus && !finalDateClosed) {
@@ -164,7 +156,6 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
         finalDateClosed = undefined;
     }
 
-    // Process dateOpened
     let finalDateOpened = formData.dateOpened || new Date().toISOString();
     if (finalDateOpened.length === 10) {
         finalDateOpened = new Date(finalDateOpened + 'T12:00:00').toISOString();
@@ -202,6 +193,12 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
   const handleDelegate = () => {
      if(isReadOnly) return;
      if(!selectedDelegate) return;
+     // Allow delegation only if Admin
+     if(!currentUser.isAdmin) {
+         alert("Permissão necessária para delegar ordens.");
+         return;
+     }
+
      const newOwner = USERS.find(u => u.id === selectedDelegate);
      if(!newOwner) return;
 
@@ -340,7 +337,7 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
         </div>
       )}
 
-      {/* Main Modal Container - MORE VERTICAL (max-w-3xl) */}
+      {/* Main Modal Container */}
       <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-3xl flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-slate-100 dark:border-slate-700 relative overflow-hidden h-[85vh]">
         
         {/* Header */}
@@ -356,7 +353,7 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
                     </span>
                     {isReadOnly && (
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-slate-600 flex items-center gap-1">
-                            <Lock size={10} /> Arquivada
+                            <Lock size={10} /> {isMobile ? 'Somente Leitura' : 'Arquivada'}
                         </span>
                     )}
                 </div>
@@ -376,7 +373,7 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
                           <span className="text-[8px] text-slate-400 uppercase font-bold">Resp.</span>
                           <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200">{owner?.name.split(' ')[0] || '-'}</span>
                       </div>
-                      {!isReadOnly && (
+                      {!isReadOnly && currentUser.isAdmin && (
                         <button 
                             onClick={() => { setIsDelegating(true); setSelectedDelegate(''); }} 
                             className="ml-1 p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full text-slate-400 hover:text-indigo-500 transition-colors"
@@ -394,14 +391,14 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b dark:border-slate-700 px-6 bg-white dark:bg-slate-800 shrink-0 gap-4">
-            <button onClick={() => setActiveTab('details')} className={`py-3 text-sm font-bold border-b-[3px] transition-all ${activeTab === 'details' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Detalhes</button>
+        <div className="flex border-b dark:border-slate-700 px-6 bg-white dark:bg-slate-800 shrink-0 gap-4 overflow-x-auto scrollbar-hide">
+            <button onClick={() => setActiveTab('details')} className={`py-3 text-sm font-bold border-b-[3px] transition-all whitespace-nowrap ${activeTab === 'details' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Detalhes</button>
             {order && (
                 <>
-                <button onClick={() => setActiveTab('history')} className={`py-3 text-sm font-bold border-b-[3px] transition-all flex items-center gap-2 ${activeTab === 'history' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                <button onClick={() => setActiveTab('history')} className={`py-3 text-sm font-bold border-b-[3px] transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'history' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
                     Chat <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[10px] px-1.5 py-0.5 rounded-full">{formData.history?.length || 0}</span>
                 </button>
-                <button onClick={() => setActiveTab('finance')} className={`py-3 text-sm font-bold border-b-[3px] transition-all flex items-center gap-2 ${activeTab === 'finance' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                <button onClick={() => setActiveTab('finance')} className={`py-3 text-sm font-bold border-b-[3px] transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'finance' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
                     Finanças <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[10px] px-1.5 py-0.5 rounded-full">{linkedExpenses.length}</span>
                 </button>
                 </>
@@ -449,7 +446,7 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
                                 value={formData.title} 
                                 onChange={e => setFormData({...formData, title: e.target.value})} 
                                 placeholder="Ex: Conserto do Ar Condicionado"
-                                autoFocus 
+                                autoFocus={!isReadOnly} 
                                 disabled={isReadOnly}
                             />
                         </div>
@@ -477,18 +474,24 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
 
                         <div>
                             <label className={labelClass}>Descrição Detalhada</label>
-                            <textarea rows={5} className={inputClass} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Descreva o problema com detalhes..." disabled={isReadOnly} />
+                            <textarea 
+                                className={`${inputClass} h-32 resize-none leading-relaxed`} 
+                                value={formData.description} 
+                                onChange={e => setFormData({...formData, description: e.target.value})} 
+                                placeholder="Descreva o problema e detalhes relevantes..."
+                                disabled={isReadOnly}
+                            />
                         </div>
                      </div>
 
-                     {/* Status & Dates Column */}
+                     {/* Status & Priority Column */}
                      <div className="space-y-5">
-                        <h4 className="font-bold text-slate-700 dark:text-slate-200 border-b dark:border-slate-700 pb-2 text-sm">Controle & Prazos</h4>
+                        <h4 className="font-bold text-slate-700 dark:text-slate-200 border-b dark:border-slate-700 pb-2 text-sm">Controle e Prazos</h4>
                         
-                        <div className="bg-slate-50 dark:bg-slate-700/30 p-4 rounded-xl border border-slate-100 dark:border-slate-600 space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className={labelClass}>Status Atual</label>
-                                <select className={`${inputClass} font-semibold`} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as OSStatus})} disabled={isReadOnly}>
+                                <label className={labelClass}>Status</label>
+                                <select className={inputClass} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as OSStatus})} disabled={isReadOnly}>
                                     {Object.values(OSStatus).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
@@ -498,276 +501,227 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
                                     {Object.values(OSPriority).map(p => <option key={p} value={p}>{p}</option>)}
                                 </select>
                             </div>
-                            
-                            {isClosedStatus ? (
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1 mb-1.5"><Calendar size={12}/> Data de Fechamento</label>
-                                    <input type="date" className={inputClass} value={formData.dateClosed ? new Date(formData.dateClosed).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]} onChange={e => setFormData({...formData, dateClosed: e.target.value})} disabled={isReadOnly} />
-                                </div>
-                            ) : (
-                                <div>
-                                    <label className={labelClass}>Abertura de OS</label>
-                                    <input type="date" className={inputClass} value={formData.dateOpened ? new Date(formData.dateOpened).toISOString().split('T')[0] : ''} onChange={e => setFormData({...formData, dateOpened: e.target.value})} disabled={isReadOnly} />
-                                </div>
-                            )}
                         </div>
-                        
-                        {/* Costs Summary */}
-                        {linkedExpenses.length > 0 && (
-                            <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-200 flex items-center gap-1.5">
-                                        <DollarSign className="w-3.5 h-3.5"/> Total em Custos
-                                    </span>
-                                    <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{totalCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className={labelClass}>Abertura</label>
+                                <div className="relative">
+                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input 
+                                        type="date" 
+                                        className={`${inputClass} pl-10`} 
+                                        value={formData.dateOpened ? new Date(formData.dateOpened).toISOString().split('T')[0] : ''} 
+                                        onChange={e => setFormData({...formData, dateOpened: e.target.value})}
+                                        disabled={isReadOnly}
+                                    />
                                 </div>
                             </div>
-                        )}
+                            <div>
+                                <label className={labelClass}>Encerramento</label>
+                                <div className="relative">
+                                    <Check className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${formData.dateClosed ? 'text-emerald-500' : 'text-gray-400'}`} />
+                                    <input 
+                                        type="date" 
+                                        className={`${inputClass} pl-10 ${formData.dateClosed ? 'border-emerald-200 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-800 dark:text-emerald-200' : ''}`} 
+                                        value={formData.dateClosed ? new Date(formData.dateClosed).toISOString().split('T')[0] : ''} 
+                                        onChange={e => setFormData({...formData, dateClosed: e.target.value})}
+                                        disabled={isReadOnly}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Cost Summary (Read Only here) */}
+                        <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl border border-slate-200 dark:border-slate-600 mt-4">
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Custo Total Vinculado</span>
+                                <span className="text-lg font-bold text-slate-800 dark:text-white">{totalCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                                <DollarSign size={10} /> Gerenciado na aba Finanças
+                            </div>
+                        </div>
                      </div>
                 </div>
             )}
 
-            {/* TAB: CHAT (SIMPLE AND ROBUST) */}
+            {/* TAB: HISTORY (Chat) */}
             {activeTab === 'history' && (
-                <div className="flex flex-col h-full absolute inset-0 bg-slate-100 dark:bg-slate-900">
-                    <div className="flex-1 overflow-y-auto p-4 space-y-6" ref={scrollRef}>
-                        {(!formData.history || formData.history.length === 0) && (
-                            <div className="flex flex-col items-center justify-center h-full text-gray-400 opacity-60">
-                                <MessageSquare size={48} />
-                                <p className="text-sm mt-2">Sem mensagens ainda.</p>
+                <div className="flex flex-col h-full">
+                    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6" ref={scrollRef}>
+                        {formData.history?.length === 0 && (
+                            <div className="text-center text-gray-400 dark:text-gray-500 text-sm mt-10">
+                                <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                Nenhuma atividade registrada.
                             </div>
                         )}
-                        {getGroupedHistory().map((group, idx) => (
-                            <div key={idx} className="relative">
-                                {/* Date Badge */}
-                                <div className="sticky top-0 z-10 flex justify-center mb-4 pt-2">
-                                    <span className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 text-[10px] font-bold px-3 py-1 rounded-full text-slate-500 dark:text-slate-400 uppercase shadow-sm">
+                        {getGroupedHistory().map((group, gIdx) => (
+                            <div key={gIdx} className="relative">
+                                <div className="sticky top-0 z-10 flex justify-center mb-4">
+                                    <span className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold px-3 py-1 rounded-full shadow-sm uppercase tracking-wide">
                                         {group.dateLabel}
                                     </span>
                                 </div>
-
-                                <div className="space-y-4">
-                                    {group.logs.map(log => {
+                                <div className="space-y-3">
+                                    {group.logs.map((log) => {
                                         const isMe = log.userId === currentUser.id;
                                         const logUser = USERS.find(u => u.id === log.userId);
-                                        const time = new Date(log.date).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-
                                         return (
-                                            <div key={log.id} className={`flex w-full items-end gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                                                
-                                                {/* Avatar */}
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] text-white font-bold shrink-0 border-2 border-white dark:border-slate-800 shadow-sm ${logUser?.color || 'bg-gray-400'}`}>
-                                                    {logUser?.avatarUrl ? (
-                                                        <img src={logUser.avatarUrl} alt={logUser.initials} className="w-full h-full object-cover rounded-full" />
-                                                    ) : (
-                                                        logUser?.initials || <UserIcon size={12} />
-                                                    )}
+                                            <div key={log.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-sm border-2 border-white dark:border-slate-800 ${logUser?.color || 'bg-gray-400'}`}>
+                                                    {logUser?.initials || '?'}
                                                 </div>
-
-                                                {/* Bubble */}
-                                                <div className={`
-                                                    max-w-[85%] px-4 py-2 relative shadow-sm
-                                                    ${isMe 
-                                                        ? 'bg-indigo-600 text-white rounded-2xl rounded-br-none' 
-                                                        : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-bl-none'}
-                                                `}>
-                                                    {!isMe && <span className="block text-[10px] font-bold text-indigo-500 dark:text-indigo-400 mb-0.5">{logUser?.name || 'Sistema'}</span>}
-                                                    <p className="text-sm leading-snug whitespace-pre-wrap">{log.message}</p>
-                                                    <span className={`text-[9px] block text-right mt-1 opacity-70 ${isMe ? 'text-indigo-100' : 'text-slate-400'}`}>{time}</span>
+                                                <div className={`flex flex-col max-w-[80%] ${isMe ? 'items-end' : 'items-start'}`}>
+                                                    <div className={`px-4 py-2 rounded-2xl text-sm shadow-sm ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-tl-none border border-slate-100 dark:border-slate-700'}`}>
+                                                        {log.message}
+                                                    </div>
+                                                    <span className="text-[10px] text-gray-400 mt-1 px-1">
+                                                        {new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
                                                 </div>
                                             </div>
-                                        );
+                                        )
                                     })}
                                 </div>
                             </div>
                         ))}
                     </div>
                     
-                    {/* Input Area */}
                     {!isReadOnly && (
-                    <div className="p-3 bg-white dark:bg-slate-800 border-t dark:border-slate-700 shrink-0">
-                        <div className="flex items-end gap-2 bg-slate-100 dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-700">
-                            <button 
-                                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors"
-                                title="Anexar arquivo"
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                <Paperclip size={20} />
-                            </button>
-                            <input 
-                                type="file" 
-                                ref={fileInputRef} 
-                                className="hidden" 
-                                onChange={handleFileSelect}
-                            />
-                            <textarea 
-                                className="flex-1 bg-transparent border-none outline-none text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 resize-none py-2 max-h-32"
-                                placeholder="Digite sua mensagem..."
-                                rows={1}
-                                value={newLog}
-                                onChange={e => setNewLog(e.target.value)}
-                                onKeyDown={e => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleAddLog();
-                                    }
-                                }}
-                            />
-                            <button 
-                                onClick={handleAddLog} 
-                                disabled={!newLog.trim() || isSending} 
-                                className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 transition-colors shadow-sm mb-0.5"
-                            >
-                                {isSending ? <Clock className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 ml-0.5" />}
-                            </button>
+                        <div className="p-3 bg-white dark:bg-slate-800 border-t dark:border-slate-700">
+                            <div className="flex gap-2 items-end bg-slate-50 dark:bg-slate-700/50 p-2 rounded-xl border border-slate-200 dark:border-slate-600 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
+                                <button onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-white dark:hover:bg-slate-600 rounded-lg transition-colors">
+                                    <Paperclip size={18} />
+                                </button>
+                                <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} />
+                                
+                                <textarea 
+                                    className="flex-1 bg-transparent border-none focus:ring-0 resize-none text-sm text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 max-h-24 py-2"
+                                    placeholder="Digite uma mensagem..."
+                                    rows={1}
+                                    value={newLog}
+                                    onChange={e => setNewLog(e.target.value)}
+                                    onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddLog(); } }}
+                                />
+                                
+                                <button 
+                                    onClick={handleAddLog} 
+                                    disabled={!newLog.trim() || isSending}
+                                    className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all active:scale-95"
+                                >
+                                    <Send size={16} className={isSending ? 'animate-pulse' : ''} />
+                                </button>
+                            </div>
                         </div>
-                    </div>
                     )}
                 </div>
             )}
 
             {/* TAB: FINANCE */}
             {activeTab === 'finance' && (
-                <div className="space-y-4">
-                     <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-900/20 p-5 rounded-2xl border border-emerald-200 dark:border-emerald-800">
-                         <span className="font-bold text-emerald-800 dark:text-emerald-200 flex items-center gap-2"><DollarSign size={20}/> Custo Total</span>
-                         <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{totalCost.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</span>
-                     </div>
-                     
-                     {!isAddingExpense && !isReadOnly ? (
-                         <button onClick={() => setIsAddingExpense(true)} className="w-full py-4 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-2xl text-gray-500 font-bold hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-all flex items-center justify-center gap-2">
-                             <Plus size={18} /> Adicionar Despesa
-                         </button>
-                     ) : isAddingExpense && (
-                         <div className="bg-gray-50 dark:bg-slate-700/50 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 animate-in fade-in slide-in-from-top-2 pb-32">
-                             <h4 className="font-bold mb-4 flex items-center gap-2 text-slate-700 dark:text-slate-200"><DollarSign size={18}/> Novo Gasto</h4>
-                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                                 <div className="col-span-2 lg:col-span-3">
-                                     <label className={labelClass}>Item*</label>
-                                     <input type="text" className={inputClass} placeholder="Ex: Peça X" value={newExpenseData.item || ''} onChange={e => setNewExpenseData({...newExpenseData, item: e.target.value})} />
-                                 </div>
-                                 <div><label className={labelClass}>Valor*</label><input type="number" className={numberInputClass} value={newExpenseData.value || ''} onChange={e => setNewExpenseData({...newExpenseData, value: parseFloat(e.target.value)})} /></div>
-                                 <div><label className={labelClass}>Data*</label><input type="date" className={inputClass} value={newExpenseData.date || ''} onChange={e => setNewExpenseData({...newExpenseData, date: e.target.value})} /></div>
-                                 <div>
-                                     <label className={labelClass}>Categoria*</label>
-                                     <select className={inputClass} value={newExpenseData.category} onChange={e => setNewExpenseData({...newExpenseData, category: e.target.value as ExpenseCategory})}>
-                                         {Object.values(ExpenseCategory).map(c => <option key={c} value={c}>{c}</option>)}
-                                     </select>
-                                 </div>
-                                 
-                                 {/* Custom Supplier Dropdown */}
-                                 <div className="col-span-2 relative" ref={supplierDropdownRef}>
-                                     <label className={labelClass}>Prestador*</label>
-                                     <div className="relative">
-                                         <input 
-                                            type="text" 
-                                            className={inputClass} 
-                                            value={newExpenseData.supplier || ''} 
-                                            onChange={e => {
-                                                setNewExpenseData({...newExpenseData, supplier: e.target.value});
-                                                setIsSupplierDropdownOpen(true);
-                                            }}
-                                            onFocus={() => setIsSupplierDropdownOpen(true)}
-                                            placeholder="Busque ou cadastre..."
-                                         />
-                                         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                            <Search size={14} />
-                                         </div>
-                                     </div>
+                <div className="flex flex-col h-full relative">
+                    <div className="flex-1 overflow-y-auto pb-20">
+                        {linkedExpenses.length === 0 ? (
+                            <div className="text-center py-10">
+                                <div className="w-16 h-16 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <DollarSign className="w-8 h-8 text-slate-300 dark:text-slate-500" />
+                                </div>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm">Nenhuma despesa vinculada.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {linkedExpenses.map(expense => (
+                                    <div key={expense.id} className="bg-white dark:bg-slate-700/50 p-4 rounded-xl border border-slate-200 dark:border-slate-600 flex justify-between items-center shadow-sm hover:shadow-md transition-all">
+                                        <div className="flex gap-3 items-center">
+                                            <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-emerald-600 dark:text-emerald-400">
+                                                <DollarSign size={18} />
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-slate-800 dark:text-white text-sm">{expense.item}</p>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">{expense.supplier} • {new Date(expense.date).toLocaleDateString('pt-BR')}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <span className="font-bold text-slate-700 dark:text-emerald-400">{expense.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                            {!isReadOnly && currentUser.isAdmin && (
+                                                <button onClick={() => setExpenseToDelete(expense)} className="text-slate-400 hover:text-red-500 transition-colors">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
-                                     {isSupplierDropdownOpen && (newExpenseData.supplier || filteredSuppliersList.length > 0) && (
-                                        <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                                            {filteredSuppliersList.length > 0 ? (
-                                                <ul className="py-1 text-sm text-gray-700 dark:text-gray-200">
-                                                    {filteredSuppliersList.map(sup => (
-                                                        <li 
-                                                            key={sup.id}
-                                                            className="px-4 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-700 dark:hover:text-emerald-400 cursor-pointer flex justify-between items-center"
-                                                            onClick={() => handleSelectSupplier(sup.name)}
-                                                        >
-                                                            <span>{sup.name}</span>
-                                                            <span className="text-[10px] bg-gray-100 dark:bg-slate-600 px-1.5 py-0.5 rounded text-gray-500 dark:text-gray-300">{sup.category}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            ) : null}
-                                            
-                                            {/* Quick Add Option - Always visible if there is input text, offering to create a new one even if matches found */}
-                                            {newExpenseData.supplier && (
-                                                <div className="p-2 border-t dark:border-slate-600 bg-gray-50 dark:bg-slate-700/50 sticky bottom-0">
-                                                    <button 
-                                                        onClick={handleQuickAddSupplier}
-                                                        className="w-full text-left px-2 py-1.5 text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-md flex items-center gap-2"
-                                                    >
-                                                        <Plus size={14} />
-                                                        Cadastrar "{newExpenseData.supplier}"
-                                                    </button>
+                    {!isReadOnly && (
+                        <div className={`p-4 border-t dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 absolute bottom-0 left-0 w-full transition-transform duration-300 ${isAddingExpense ? 'translate-y-0' : 'translate-y-[calc(100%-70px)]'}`}>
+                            {!isAddingExpense ? (
+                                <button onClick={() => setIsAddingExpense(true)} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all">
+                                    <Plus size={18} /> Adicionar Despesa
+                                </button>
+                            ) : (
+                                <div className="space-y-4 animate-in slide-in-from-bottom-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h4 className="font-bold text-slate-700 dark:text-white">Nova Despesa</h4>
+                                        <button onClick={() => setIsAddingExpense(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="col-span-2">
+                                            <input type="text" placeholder="Item / Serviço" className={inputClass} value={newExpenseData.item || ''} onChange={e => setNewExpenseData({...newExpenseData, item: e.target.value})} autoFocus />
+                                        </div>
+                                        <div className="relative col-span-2" ref={supplierDropdownRef}>
+                                            <div className="relative">
+                                                <input type="text" placeholder="Fornecedor / Prestador" className={inputClass} value={newExpenseData.supplier || ''} onChange={e => { setNewExpenseData({...newExpenseData, supplier: e.target.value}); setIsSupplierDropdownOpen(true); }} onFocus={() => setIsSupplierDropdownOpen(true)} />
+                                                <Search className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                            </div>
+                                            {isSupplierDropdownOpen && (newExpenseData.supplier || filteredSuppliersList.length > 0) && (
+                                                <div className="absolute bottom-full left-0 w-full mb-1 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg shadow-xl max-h-40 overflow-y-auto z-50">
+                                                    {filteredSuppliersList.length > 0 && (
+                                                        <ul className="py-1 text-sm text-gray-700 dark:text-gray-200">
+                                                            {filteredSuppliersList.map(sup => (<li key={sup.id} className="px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 cursor-pointer flex justify-between" onClick={() => handleSelectSupplier(sup.name)}><span>{sup.name}</span><span className="text-[10px] opacity-60">{sup.category}</span></li>))}
+                                                        </ul>
+                                                    )}
+                                                    {newExpenseData.supplier && !filteredSuppliersList.some(s => s.name.toLowerCase() === newExpenseData.supplier?.toLowerCase()) && (
+                                                        <div className="p-2 border-t dark:border-slate-600 bg-gray-50 dark:bg-slate-700/50"><button onClick={handleQuickAddSupplier} className="w-full text-left px-2 py-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1"><Plus size={12} /> Cadastrar "{newExpenseData.supplier}"</button></div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
-                                     )}
-                                 </div>
-
-                                 <div>
-                                     <label className={labelClass}>Pagamento*</label>
-                                     <select className={inputClass} value={newExpenseData.paymentMethod} onChange={e => setNewExpenseData({...newExpenseData, paymentMethod: e.target.value as PaymentMethod})}>
-                                         {Object.values(PaymentMethod).map(m => <option key={m} value={m}>{m}</option>)}
-                                     </select>
-                                 </div>
-                             </div>
-                             <div className="flex justify-end gap-3">
-                                 <button onClick={() => setIsAddingExpense(false)} className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-200 rounded-xl transition-colors">Cancelar</button>
-                                 <button onClick={handleSaveExpense} className="px-4 py-2 text-sm font-bold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors">Salvar</button>
-                             </div>
-                         </div>
-                     )}
-
-                     <div className="border dark:border-slate-600 rounded-2xl overflow-hidden shadow-sm">
-                         <table className="w-full text-sm text-left">
-                             <thead className="bg-gray-100 dark:bg-slate-700 text-xs uppercase text-gray-500">
-                                 <tr>
-                                     <th className="px-5 py-3">Data</th>
-                                     <th className="px-5 py-3">Item</th>
-                                     <th className="px-5 py-3">Valor</th>
-                                     <th className="px-5 py-3"></th>
-                                 </tr>
-                             </thead>
-                             <tbody className="divide-y dark:divide-slate-700">
-                                 {linkedExpenses.map(e => (
-                                     <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 group">
-                                         <td className="px-5 py-3 text-xs text-gray-500">{new Date(e.date).toLocaleDateString('pt-BR')}</td>
-                                         <td className="px-5 py-3">
-                                             <div className="font-bold text-slate-700 dark:text-slate-200">{e.item}</div>
-                                             <div className="text-[10px] text-gray-400">{e.supplier}</div>
-                                         </td>
-                                         <td className="px-5 py-3 font-bold text-emerald-600">{e.value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</td>
-                                         <td className="px-5 py-3 text-right">
-                                             {!isReadOnly && (
-                                                <button onClick={() => setExpenseToDelete(e)} className="p-2 text-red-400 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16}/></button>
-                                             )}
-                                         </td>
-                                     </tr>
-                                 ))}
-                                 {linkedExpenses.length === 0 && <tr><td colSpan={4} className="px-5 py-10 text-center text-gray-400">Nenhum custo registrado.</td></tr>}
-                             </tbody>
-                         </table>
-                     </div>
+                                        <div>
+                                            <input type="number" placeholder="Valor (R$)" className={numberInputClass} value={newExpenseData.value || ''} onChange={e => setNewExpenseData({...newExpenseData, value: Number(e.target.value)})} />
+                                        </div>
+                                        <div>
+                                            <input type="date" className={inputClass} value={newExpenseData.date} onChange={e => setNewExpenseData({...newExpenseData, date: e.target.value})} />
+                                        </div>
+                                    </div>
+                                    
+                                    <button onClick={handleSaveExpense} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md transition-all">
+                                        Salvar
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
+
         </div>
 
-        {/* Footer (Hidden in Chat to maximize space) */}
-        {activeTab !== 'history' && (
-            <div className="p-5 border-t dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex justify-end gap-3 rounded-b-3xl shrink-0">
-                {isReadOnly ? (
-                    <button onClick={onClose} className="px-6 py-2.5 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-white rounded-xl text-sm font-bold transition-colors">Fechar</button>
-                ) : (
-                    <>
-                        <button onClick={onClose} className="px-5 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl text-sm font-bold transition-colors">Cancelar</button>
-                        <button onClick={handleSave} className="px-8 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 flex items-center gap-2 text-sm font-bold shadow-lg shadow-indigo-500/20 active:scale-95 transition-all">
-                            <Save className="w-4 h-4" /> Salvar Alterações
-                        </button>
-                    </>
+        {/* Footer Actions (Only for Details Tab) */}
+        {activeTab === 'details' && (
+            <div className="p-5 border-t dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex justify-end gap-3 shrink-0">
+                <button onClick={onClose} className="px-5 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 font-bold rounded-xl transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-600">
+                    Cancelar
+                </button>
+                {!isReadOnly && (
+                    <button onClick={handleSave} className="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition-all active:scale-95">
+                        <Save className="w-4 h-4" />
+                        Salvar Alterações
+                    </button>
                 )}
             </div>
         )}

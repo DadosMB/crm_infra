@@ -89,6 +89,31 @@ export enum PaymentMethod {
   OUTROS = 'Outros',
 }
 
+export enum ExpenseStatus {
+  PENDENTE = 'Pendente', // Aguardando Pagamento
+  PROGRAMADO = 'Programado', // Incluído na remessa da semana
+  PAGO = 'Pago',
+}
+
+export interface PaymentDetails {
+  beneficiaryName: string;
+  beneficiaryType: 'PF' | 'PJ';
+  docNumber: string; // CPF or CNPJ
+  pixKey?: string;
+  bankInfo?: {
+    bank: string;
+    agency: string;
+    account: string;
+  };
+}
+
+export interface ExpenseAttachment {
+  id: string;
+  name: string;
+  url: string; // Base64 or Blob URL
+  type: 'image' | 'pdf' | 'other';
+}
+
 export interface Expense {
   id: string; // e.g., FIN-001
   item: string;
@@ -101,6 +126,9 @@ export interface Expense {
   category: ExpenseCategory;
   paymentMethod: PaymentMethod;
   unit: Unit;
+  attachments?: ExpenseAttachment[]; // New field for files
+  status?: ExpenseStatus; // Status do fluxo financeiro
+  paymentData?: PaymentDetails; // Dados bancários confirmados para pagamento
 }
 
 export interface PersonalTask {

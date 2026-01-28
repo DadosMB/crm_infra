@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { PersonalTask, User, ServiceOrder } from '../types';
 import { CheckSquare, Plus, Calendar, Flag, Trash2, Search, Link as LinkIcon, CheckCircle2, AlertCircle, X, Check, Pencil } from 'lucide-react';
@@ -11,6 +12,7 @@ interface TaskManagerProps {
   onToggleTask: (taskId: string) => void;
   onDeleteTask: (taskId: string) => void;
   onOpenOS: (osId: string) => void;
+  isMobile?: boolean;
 }
 
 export const TaskManager: React.FC<TaskManagerProps> = ({ 
@@ -21,7 +23,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     onUpdateTask,
     onToggleTask, 
     onDeleteTask,
-    onOpenOS
+    onOpenOS,
+    isMobile = false
 }) => {
     
   // Local State for New Task Form
@@ -51,6 +54,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   };
 
   const handleEditClick = (task: PersonalTask) => {
+      if (isMobile) return; // Block edit on mobile
       setNewTask({
           title: task.title,
           description: task.description,
@@ -161,7 +165,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     <div className="h-full flex flex-col animate-in fade-in duration-500">
         
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
                     <CheckSquare className="w-6 h-6 text-red-600 dark:text-red-400" />
@@ -170,23 +174,23 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                 <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Organize seu dia a dia e não perca prazos.</p>
             </div>
             
-            <div className="flex gap-3">
-                <div className="flex bg-white dark:bg-slate-800 rounded-lg p-1 border shadow-sm dark:border-slate-700">
+            <div className="flex gap-3 w-full sm:w-auto">
+                <div className="flex bg-white dark:bg-slate-800 rounded-lg p-1 border shadow-sm dark:border-slate-700 flex-1 sm:flex-none justify-center">
                     <button 
                         onClick={() => setFilterStatus('all')}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${filterStatus === 'all' ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'}`}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors flex-1 sm:flex-none text-center ${filterStatus === 'all' ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'}`}
                     >
                         Todas
                     </button>
                     <button 
                          onClick={() => setFilterStatus('pending')}
-                         className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${filterStatus === 'pending' ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'}`}
+                         className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors flex-1 sm:flex-none text-center ${filterStatus === 'pending' ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'}`}
                     >
                         Pendentes
                     </button>
                     <button 
                          onClick={() => setFilterStatus('completed')}
-                         className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${filterStatus === 'completed' ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'}`}
+                         className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors flex-1 sm:flex-none text-center ${filterStatus === 'completed' ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'}`}
                     >
                         Feitas
                     </button>
@@ -198,17 +202,17 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                         setNewTask({ priority: 'medium', title: '', description: '', linkedOSId: '', dueDate: '' });
                         setIsAdding(!isAdding);
                     }}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm transition-all text-sm font-bold"
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm transition-all text-sm font-bold shrink-0"
                 >
                     <Plus className="w-4 h-4" />
-                    Nova Tarefa
+                    Nova
                 </button>
             </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 h-full overflow-hidden">
             
-            {/* Left Column: Input Form */}
+            {/* Left Column: Input Form (Overlay on mobile if desired, or inline) */}
             {isAdding && (
                 <div className="w-full lg:w-1/3 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-red-100 dark:border-slate-700 shadow-xl h-fit animate-in slide-in-from-left-4 duration-300 z-10">
                     <div className="flex justify-between items-center mb-4">
@@ -229,6 +233,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                             />
                         </div>
 
+                        {/* Simplified Creation on Mobile: Maybe just Title is enough? But keeping full form as per instructions */}
                         <div>
                             <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase block mb-1">Detalhes (Opcional)</label>
                             <textarea 
@@ -375,22 +380,25 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                                                     {task.title}
                                                 </h4>
                                                 
-                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                     <button 
-                                                        onClick={() => handleEditClick(task)}
-                                                        className="text-gray-300 dark:text-slate-600 hover:text-indigo-500 transition-colors p-1"
-                                                        title="Editar"
-                                                     >
-                                                         <Pencil size={16} />
-                                                     </button>
-                                                     <button 
-                                                        onClick={() => onDeleteTask(task.id)}
-                                                        className="text-gray-300 dark:text-slate-600 hover:text-red-500 transition-colors p-1"
-                                                        title="Excluir"
-                                                     >
-                                                         <Trash2 size={16} />
-                                                     </button>
-                                                </div>
+                                                {/* Hide Action Buttons on Mobile */}
+                                                {!isMobile && (
+                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button 
+                                                            onClick={() => handleEditClick(task)}
+                                                            className="text-gray-300 dark:text-slate-600 hover:text-indigo-500 transition-colors p-1"
+                                                            title="Editar"
+                                                        >
+                                                            <Pencil size={16} />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => onDeleteTask(task.id)}
+                                                            className="text-gray-300 dark:text-slate-600 hover:text-red-500 transition-colors p-1"
+                                                            title="Excluir"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {task.description && (

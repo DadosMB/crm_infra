@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
@@ -75,6 +76,65 @@
       .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: #475569;
       }
+
+      /* --- PERFORMANCE MODE GLOBAL OVERRIDES --- */
+      /* 
+         Quando a classe .performance-mode está no body, desativamos
+         recursos visuais custosos para a GPU/CPU.
+      */
+      body.performance-mode *,
+      body.performance-mode *::before,
+      body.performance-mode *::after {
+        /* Desativa todas as transições e animações */
+        transition: none !important;
+        animation: none !important;
+        /* Remove efeitos de blur (vidro) */
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+
+      /* 
+         Substitui sombras pesadas por bordas simples.
+         Isso mantém a hierarquia visual sem o custo de renderizar sombras.
+      */
+      body.performance-mode .shadow-2xl,
+      body.performance-mode .shadow-xl,
+      body.performance-mode .shadow-lg,
+      body.performance-mode .shadow-md,
+      body.performance-mode .shadow-sm,
+      body.performance-mode .shadow {
+        box-shadow: none !important;
+        border: 1px solid #e2e8f0 !important; /* slate-200 */
+      }
+
+      /* 
+         CORREÇÃO PARA MODO ESCURO:
+         O Tailwind aplica a classe 'dark' na tag HTML, não no body.
+         Portanto, o seletor deve ser 'html.dark body.performance-mode ...'
+      */
+      html.dark body.performance-mode .shadow-2xl,
+      html.dark body.performance-mode .shadow-xl,
+      html.dark body.performance-mode .shadow-lg,
+      html.dark body.performance-mode .shadow-md,
+      html.dark body.performance-mode .shadow-sm,
+      html.dark body.performance-mode .shadow {
+        box-shadow: none !important;
+        border: 1px solid #334155 !important; /* slate-700 - Corrigido para dark mode */
+      }
+      
+      /* 
+         Exceção para Sidebar (aside) no modo performance para evitar borda dupla 
+         já que ela possui border-r nativo.
+      */
+      body.performance-mode aside.shadow-2xl {
+        border: none !important; /* Reseta a borda global */
+        border-right: 1px solid #e2e8f0 !important; /* Mantém apenas a borda direita (light) */
+      }
+      html.dark body.performance-mode aside.shadow-2xl {
+        border: none !important;
+        border-right: 1px solid #1e293b !important; /* Mantém apenas a borda direita (dark slate-800) */
+      }
+
     </style>
 <script type="importmap">
 {

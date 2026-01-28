@@ -1,3 +1,4 @@
+
 # CRM Infra MenuBrands
 
 Sistema inteligente de gestão de Ordens de Serviço e Finanças desenvolvido para a infraestrutura da MenuBrands.
@@ -19,4 +20,4 @@ Sistema inteligente de gestão de Ordens de Serviço e Finanças desenvolvido pa
 
 ## Créditos
 
-Desenvolvido pela equipe de Back-End da MenuBrands.
+Desenvolvido pelo **Vitor Hortêncio**, assistente de infraestrutura II na MenuBrands.

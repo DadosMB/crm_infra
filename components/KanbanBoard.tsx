@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { ServiceOrder, OSStatus, OSPriority, Unit, OSType, Expense } from '../types';
 import { USERS } from '../constants';
@@ -13,6 +14,7 @@ interface KanbanBoardProps {
   onOrderUpdate: (order: ServiceOrder) => void;
   onNewOrder: () => void;
   onArchiveOrder: (order: ServiceOrder) => void;
+  isMobile?: boolean;
 }
 
 // Updated Column Structure with High Contrast Dark Mode Colors and "Glow" effects
@@ -21,7 +23,6 @@ const BOARD_COLUMNS = [
     id: 'col_aberta',
     label: 'Aberta', 
     statuses: [OSStatus.ABERTA],
-    // Blue: Brighter text, subtler background in dark mode, blue glow border
     color: 'bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800 dark:shadow-[0_0_15px_-3px_rgba(37,99,235,0.3)]', 
     dot: 'bg-blue-500 dark:bg-blue-400 dark:shadow-[0_0_10px_rgba(59,130,246,0.8)]', 
     text: 'text-blue-800 dark:text-blue-100 font-bold' 
@@ -30,7 +31,6 @@ const BOARD_COLUMNS = [
     id: 'col_analise', 
     label: 'Sob Análise', 
     statuses: [OSStatus.AGUARDANDO],
-    // Orange: Brighter text, orange glow
     color: 'bg-orange-50 border-orange-200 dark:bg-orange-950/40 dark:border-orange-800 dark:shadow-[0_0_15px_-3px_rgba(234,88,12,0.3)]', 
     dot: 'bg-orange-500 dark:bg-orange-400 dark:shadow-[0_0_10px_rgba(249,115,22,0.8)]', 
     text: 'text-orange-800 dark:text-orange-100 font-bold' 
@@ -39,7 +39,6 @@ const BOARD_COLUMNS = [
     id: 'col_progresso', 
     label: 'Em Progresso', 
     statuses: [OSStatus.EM_ANDAMENTO],
-    // Purple (Lilás): Changed from Yellow to Purple as requested
     color: 'bg-purple-50 border-purple-200 dark:bg-purple-950/40 dark:border-purple-800 dark:shadow-[0_0_15px_-3px_rgba(147,51,234,0.3)]', 
     dot: 'bg-purple-500 dark:bg-purple-400 dark:shadow-[0_0_10px_rgba(168,85,247,0.8)]', 
     text: 'text-purple-800 dark:text-purple-100 font-bold' 
@@ -48,7 +47,6 @@ const BOARD_COLUMNS = [
     id: 'col_encerradas', 
     label: 'Encerradas', 
     statuses: [OSStatus.CONCLUIDA, OSStatus.CANCELADA],
-    // Green: Changed from Slate to Emerald/Green as requested
     color: 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800 dark:shadow-[0_0_15px_-3px_rgba(5,150,105,0.3)]', 
     dot: 'bg-emerald-500 dark:bg-emerald-400 dark:shadow-[0_0_10px_rgba(52,211,153,0.8)]', 
     text: 'text-emerald-800 dark:text-emerald-100 font-bold' 
@@ -90,7 +88,7 @@ const PRIORITY_WEIGHT = {
 
 type SortKey = keyof ServiceOrder | 'ownerName' | 'totalCost';
 
-export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOrderClick, onOrderUpdate, onNewOrder, onArchiveOrder }) => {
+export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOrderClick, onOrderUpdate, onNewOrder, onArchiveOrder, isMobile = false }) => {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [draggedOrderId, setDraggedOrderId] = useState<string | null>(null);
@@ -199,6 +197,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
   };
 
   const handleDragStart = (e: React.DragEvent, orderId: string) => {
+    if (isMobile) return; // Disable Drag on Mobile
     e.dataTransfer.setData('text/plain', orderId);
     e.dataTransfer.effectAllowed = 'move';
     setDraggedOrderId(orderId);
@@ -212,6 +211,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
   };
 
   const handleDragOver = (e: React.DragEvent, colId: string) => {
+    if (isMobile) return;
     e.preventDefault(); 
     e.dataTransfer.dropEffect = 'move';
     if (dragOverColumn !== colId) {
@@ -220,6 +220,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
   };
 
   const handleDrop = (e: React.DragEvent, colId: string) => {
+    if (isMobile) return;
     e.preventDefault();
     const orderId = e.dataTransfer.getData('text/plain');
     setDragOverColumn(null);
@@ -276,16 +277,19 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
             </div>
           </div>
 
-          <button 
-            onClick={onNewOrder}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm transition-all text-sm font-medium"
-          >
-            <PlusCircle className="w-4 h-4" />
-            Nova OS
-          </button>
+          {!isMobile && (
+            <button 
+                onClick={onNewOrder}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm transition-all text-sm font-medium"
+            >
+                <PlusCircle className="w-4 h-4" />
+                Nova OS
+            </button>
+          )}
         </div>
 
         {/* Filters Container */}
+        {/* ... (Rest of filter code same as previous) ... */}
         <div className="space-y-4 bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
             {/* Unit Filters */}
             <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
@@ -465,13 +469,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
                         return (
                         <div 
                             key={order.id}
-                            draggable
+                            draggable={!isMobile} // Disable drag on mobile
                             onDragStart={(e) => handleDragStart(e, order.id)}
                             onDragEnd={handleDragEnd}
                             onClick={() => onOrderClick(order)}
                             className={`
-                            bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-gray-200/60 dark:border-slate-700 cursor-grab active:cursor-grabbing 
-                            hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group select-none relative
+                            bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-gray-200/60 dark:border-slate-700 cursor-pointer 
+                            ${!isMobile ? 'active:cursor-grabbing hover:shadow-lg hover:-translate-y-1' : ''}
+                            transition-all duration-300 group select-none relative
                             ${isBeingDragged ? 'opacity-40 grayscale border-dashed border-gray-400 rotate-2' : 'opacity-100'}
                             `}
                         >
@@ -532,8 +537,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
                                 </div>
                             </div>
 
-                            {/* DOCUMENTATION BUTTON - Only if Concluída */}
-                            {order.status === OSStatus.CONCLUIDA && (
+                            {/* DOCUMENTATION BUTTON - Only if Concluída and NOT mobile (as mobile view is read-only) */}
+                            {order.status === OSStatus.CONCLUIDA && !isMobile && (
                                 <button 
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -551,7 +556,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
                     {columnOrders.length === 0 && (
                         <div className={`
                             flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-xl text-gray-400 text-sm transition-colors m-2
-                            ${isDragOver ? 'border-indigo-300 bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-400' : 'border-gray-200 dark:border-slate-700'}
+                            ${isDragOver && !isMobile ? 'border-indigo-300 bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-400' : 'border-gray-200 dark:border-slate-700'}
                         `}>
                         <span className="opacity-60 font-medium">Arraste para cá</span>
                         </div>
@@ -563,9 +568,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
             </div>
         )}
 
-        {/* VIEW MODE: LIST */}
+        {/* VIEW MODE: LIST (Same as before) */}
         {viewMode === 'list' && (
              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 overflow-hidden flex flex-col h-full animate-in fade-in duration-300">
+                {/* ... (List View Implementation - unchanged logic, just uses sortedOrders) ... */}
                 <div className="overflow-x-auto flex-1">
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
@@ -660,7 +666,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
                                             )}
                                         </td>
                                         <td className="px-4 py-4 text-center">
-                                            {order.status === OSStatus.CONCLUIDA ? (
+                                            {order.status === OSStatus.CONCLUIDA && !isMobile ? (
                                                 <button 
                                                     onClick={(e) => {
                                                         e.stopPropagation();
