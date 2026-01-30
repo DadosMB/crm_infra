@@ -1,9 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { LayoutDashboard, Trello, DollarSign, Settings, LogOut, FileText, ChevronLeft, ChevronRight, CheckSquare, Bell, CheckCircle2, AlertCircle, FileCheck } from 'lucide-react';
+import { LayoutDashboard, Trello, DollarSign, Settings, LogOut, FileText, ChevronLeft, ChevronRight, CheckSquare, Bell, CheckCircle2, AlertCircle, FileCheck, Moon, Sun, Box } from 'lucide-react';
 import { User, Notification, NotificationType } from '../types';
 
-type View = 'dashboard' | 'kanban' | 'finance' | 'reports' | 'tasks' | 'settings';
+type View = 'dashboard' | 'kanban' | 'finance' | 'reports' | 'tasks' | 'settings' | 'assets';
 
 interface SidebarProps {
   currentView: View;
@@ -15,6 +15,8 @@ interface SidebarProps {
   notifications: Notification[];
   onMarkAsRead: (id?: string) => void;
   isMobile?: boolean;
+  theme?: 'light' | 'dark';
+  toggleTheme?: () => void;
 }
 
 const SidebarBtn = ({ view, icon: Icon, label, currentView, setCurrentView, isCollapsed }: { view: View, icon: any, label: string, currentView: View, setCurrentView: (v: View) => void, isCollapsed: boolean }) => {
@@ -51,35 +53,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onLogout, 
     notifications, 
     onMarkAsRead,
-    isMobile = false
+    isMobile = false,
+    theme,
+    toggleTheme
 }) => {
+  // ... (Notification logic unchanged) ...
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showMobileNotifications, setShowMobileNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const mobileNotificationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
       function handleClickOutside(event: MouseEvent) {
           if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
               setShowNotifications(false);
           }
+          if (mobileNotificationRef.current && !mobileNotificationRef.current.contains(event.target as Node)) {
+              setShowMobileNotifications(false);
+          }
       }
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Strict Notification Filtering
-  // Only show notifications if Admin OR if notification is relevant to user (e.g., they created it, or it's system wide)
-  // Since we don't have a 'recipient' field in Notification, we approximate:
-  // Admins see everything. Users see notifications where they are the 'userInitials' (actions they did? No, that's redundant).
-  // Users typically want to see actions done by OTHERS on THEIR tasks. 
-  // Given current simple structure, let's filter purely by Admin visibility for "All" vs "Self" for now.
-  // Actually, better logic: If notification has a linkId (OS-XXX), check if user is owner? 
-  // We can't check OS owner here easily without passing 'orders'. 
-  // Simplified Approach: Admins see all. Users see system alerts or their own actions confirmation.
-  // Refined: Let's show all for now, assuming small team collaboration, OR hide finance alerts for non-admins.
-  
   const relevantNotifications = notifications.filter(n => {
       if (currentUser.isAdmin) return true;
-      // Non-admins shouldn't see sensitive finance alerts if they aren't finance related (simplified)
       if (n.type === 'finance') return false; 
       return true;
   });
@@ -131,22 +129,79 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
       )}
 
-      <div className={`p-6 flex items-center mb-2 transition-all duration-500 ${isCollapsed && !isMobile ? 'justify-center' : 'justify-start'}`}>
-        <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-orange-600 rounded-xl flex items-center justify-center p-0.5 shadow-lg shrink-0 group hover:scale-105 transition-transform">
-          <div className="bg-white w-full h-full rounded-[10px] flex items-center justify-center p-1">
-            <img
-              src="https://menubrands.com.br/wp-content/uploads/2020/04/Menu.png"
-              alt="MenuBrands"
-              className="w-full h-full object-contain"
-            />
-          </div>
+      {/* HEADER WITH MOBILE NOTIFICATIONS */}
+      <div className={`p-6 flex items-center justify-between mb-2 transition-all duration-500 ${isCollapsed && !isMobile ? 'justify-center' : ''}`}>
+        <div className="flex items-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-orange-600 rounded-xl flex items-center justify-center p-0.5 shadow-lg shrink-0 group hover:scale-105 transition-transform">
+            <div className="bg-white w-full h-full rounded-[10px] flex items-center justify-center p-1">
+                <img
+                src="https://menubrands.com.br/wp-content/uploads/2020/04/Menu.png"
+                alt="MenuBrands"
+                className="w-full h-full object-contain"
+                />
+            </div>
+            </div>
+
+            {(!isCollapsed || isMobile) && (
+            <div className="ml-3 animate-in fade-in slide-in-from-left-4 duration-500">
+                <h1 className="font-bold text-lg tracking-tight leading-none text-slate-800 dark:text-white">MenuBrands</h1>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-semibold mt-1 uppercase tracking-wide">Infra CRM <span className="text-red-500">v1.0</span></p>
+            </div>
+            )}
         </div>
 
-        {(!isCollapsed || isMobile) && (
-          <div className="ml-3 animate-in fade-in slide-in-from-left-4 duration-500">
-            <h1 className="font-bold text-lg tracking-tight leading-none text-slate-800 dark:text-white">MenuBrands</h1>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-semibold mt-1 uppercase tracking-wide">Infra CRM <span className="text-red-500">v1.0</span></p>
-          </div>
+        {/* MOBILE NOTIFICATION BUTTON */}
+        {isMobile && (
+            <div className="relative" ref={mobileNotificationRef}>
+                <button 
+                    onClick={() => setShowMobileNotifications(!showMobileNotifications)}
+                    className="w-9 h-9 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 active:scale-95 transition-all shadow-sm ml-2"
+                >
+                    <Bell size={18} className={unreadCount > 0 ? "animate-pulse text-indigo-500" : ""} />
+                    {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white dark:border-slate-900"></span>
+                    )}
+                </button>
+
+                {showMobileNotifications && (
+                    <div className="absolute top-full left-0 mt-2 w-64 -ml-40 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 z-50 overflow-hidden animate-in zoom-in-95 slide-in-from-top-2 duration-200">
+                        {/* ... Mobile notifications content ... */}
+                        <div className="p-3 border-b dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/50">
+                            <h4 className="font-bold text-slate-800 dark:text-white text-xs">Notificações</h4>
+                            <button onClick={() => { onMarkAsRead(); setShowMobileNotifications(false); }} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 uppercase tracking-wide">
+                                Limpar
+                            </button>
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                            {relevantNotifications.length > 0 ? (
+                                <div className="divide-y dark:divide-slate-800">
+                                    {relevantNotifications.map(notif => (
+                                        <div 
+                                            key={notif.id} 
+                                            className={`p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex gap-2 relative group ${!notif.read ? 'bg-slate-50/50 dark:bg-slate-800/30' : ''}`}
+                                            onClick={() => onMarkAsRead(notif.id)}
+                                        >
+                                            <div className={`p-1.5 rounded-lg h-fit shrink-0 ${notif.type === 'new_os' ? 'bg-blue-100 dark:bg-blue-900/20' : notif.type === 'completed_os' ? 'bg-emerald-100 dark:bg-emerald-900/20' : notif.type === 'finance' ? 'bg-amber-100 dark:bg-amber-900/20' : 'bg-slate-100 dark:bg-slate-800'}`}>{getIcon(notif.type)}</div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex justify-between items-start">
+                                                    <h5 className="text-[11px] font-bold text-slate-800 dark:text-white line-clamp-1">{notif.title}</h5>
+                                                    <span className="text-[9px] text-slate-400 whitespace-nowrap ml-1">{getTimeAgo(notif.date)}</span>
+                                                </div>
+                                                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">{notif.message}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="p-4 text-center text-slate-400">
+                                    <Bell className="w-5 h-5 mx-auto mb-2 opacity-20" />
+                                    <p className="text-[10px]">Tudo limpo por aqui.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
         )}
       </div>
 
@@ -157,69 +212,84 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <SidebarBtn view="tasks" icon={CheckSquare} label="Minhas Tarefas" currentView={currentView} setCurrentView={setCurrentView} isCollapsed={isCollapsed && !isMobile} />
         <SidebarBtn view="finance" icon={DollarSign} label="Finanças" currentView={currentView} setCurrentView={setCurrentView} isCollapsed={isCollapsed && !isMobile} />
         <SidebarBtn view="reports" icon={FileText} label="Relatórios" currentView={currentView} setCurrentView={setCurrentView} isCollapsed={isCollapsed && !isMobile} />
+        <SidebarBtn view="assets" icon={Box} label="Patrimônio" currentView={currentView} setCurrentView={setCurrentView} isCollapsed={isCollapsed && !isMobile} />
       </div>
 
       <div className="p-4 mt-auto space-y-3">
-        
-        <div className="relative" ref={notificationRef}>
-            <button 
-                onClick={() => setShowNotifications(!showNotifications)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 relative group
-                    ${showNotifications ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}
-                    ${isCollapsed && !isMobile ? 'justify-center' : ''}
-                `}
-                title="Notificações"
-            >
-                <div className="relative">
-                    <Bell size={20} className={unreadCount > 0 ? "animate-pulse-slow" : ""} />
-                    {unreadCount > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-sm border border-white dark:border-slate-900">
-                            {unreadCount}
-                        </span>
-                    )}
-                </div>
-                {(!isCollapsed || isMobile) && <span className="text-sm font-medium">Notificações</span>}
-            </button>
-
-            {showNotifications && (
-                <div className="absolute left-0 bottom-full mb-4 w-72 md:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 z-50 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-200">
-                    <div className="p-4 border-b dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/50">
-                        <h4 className="font-bold text-slate-800 dark:text-white">Notificações</h4>
-                        <button onClick={() => onMarkAsRead()} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 uppercase tracking-wide">
-                            Marcar lidas
-                        </button>
-                    </div>
-                    <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
-                        {relevantNotifications.length > 0 ? (
-                            <div className="divide-y dark:divide-slate-800">
-                                {relevantNotifications.map(notif => (
-                                    <div 
-                                        key={notif.id} 
-                                        className={`p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex gap-3 relative group ${!notif.read ? 'bg-slate-50/50 dark:bg-slate-800/30' : ''}`}
-                                        onClick={() => onMarkAsRead(notif.id)}
-                                    >
-                                        {!notif.read && <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-red-500"></div>}
-                                        <div className={`p-2 rounded-xl h-fit shrink-0 ${notif.type === 'new_os' ? 'bg-blue-100 dark:bg-blue-900/20' : notif.type === 'completed_os' ? 'bg-emerald-100 dark:bg-emerald-900/20' : notif.type === 'finance' ? 'bg-amber-100 dark:bg-amber-900/20' : 'bg-slate-100 dark:bg-slate-800'}`}>{getIcon(notif.type)}</div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex justify-between items-start">
-                                                <h5 className="text-sm font-bold text-slate-800 dark:text-white line-clamp-1">{notif.title}</h5>
-                                                <span className="text-[10px] text-slate-400 whitespace-nowrap ml-2">{getTimeAgo(notif.date)}</span>
-                                            </div>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">{notif.message}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="p-8 text-center text-slate-400">
-                                <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                                <p className="text-xs">Nenhuma notificação relevante.</p>
-                            </div>
+        {/* ... (Notifications and Theme Toggle code unchanged) ... */}
+        {!isMobile && (
+            <div className="relative" ref={notificationRef}>
+                <button 
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 relative group
+                        ${showNotifications ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}
+                        ${isCollapsed ? 'justify-center' : ''}
+                    `}
+                    title="Notificações"
+                >
+                    <div className="relative">
+                        <Bell size={20} className={unreadCount > 0 ? "animate-pulse-slow" : ""} />
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-sm border border-white dark:border-slate-900">
+                                {unreadCount}
+                            </span>
                         )}
                     </div>
-                </div>
-            )}
-        </div>
+                    {!isCollapsed && <span className="text-sm font-medium">Notificações</span>}
+                </button>
+
+                {showNotifications && (
+                    <div className="absolute left-0 bottom-full mb-4 w-72 md:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 z-50 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-200">
+                       {/* Notifications Popover Content */}
+                       <div className="p-4 border-b dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/50">
+                            <h4 className="font-bold text-slate-800 dark:text-white">Notificações</h4>
+                            <button onClick={() => onMarkAsRead()} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 uppercase tracking-wide">
+                                Marcar lidas
+                            </button>
+                        </div>
+                        <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
+                            {relevantNotifications.length > 0 ? (
+                                <div className="divide-y dark:divide-slate-800">
+                                    {relevantNotifications.map(notif => (
+                                        <div 
+                                            key={notif.id} 
+                                            className={`p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex gap-3 relative group ${!notif.read ? 'bg-slate-50/50 dark:bg-slate-800/30' : ''}`}
+                                            onClick={() => onMarkAsRead(notif.id)}
+                                        >
+                                            {!notif.read && <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-red-500"></div>}
+                                            <div className={`p-2 rounded-xl h-fit shrink-0 ${notif.type === 'new_os' ? 'bg-blue-100 dark:bg-blue-900/20' : notif.type === 'completed_os' ? 'bg-emerald-100 dark:bg-emerald-900/20' : notif.type === 'finance' ? 'bg-amber-100 dark:bg-amber-900/20' : 'bg-slate-100 dark:bg-slate-800'}`}>{getIcon(notif.type)}</div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex justify-between items-start">
+                                                    <h5 className="text-sm font-bold text-slate-800 dark:text-white line-clamp-1">{notif.title}</h5>
+                                                    <span className="text-[10px] text-slate-400 whitespace-nowrap ml-2">{getTimeAgo(notif.date)}</span>
+                                                </div>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">{notif.message}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="p-8 text-center text-slate-400">
+                                    <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                                    <p className="text-xs">Nenhuma notificação relevante.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        )}
+
+        {/* THEME TOGGLE (MOBILE ONLY) - Replaces Notification Button Position */}
+        {isMobile && toggleTheme && (
+            <button
+                onClick={toggleTheme}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+            >
+                {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
+                <span className="text-sm font-medium">Modo {theme === 'dark' ? 'Escuro' : 'Claro'}</span>
+            </button>
+        )}
 
         <div className={`rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-2 transition-all duration-500 ${isCollapsed && !isMobile ? 'bg-transparent border-transparent p-0' : ''}`}>
           <button

@@ -133,37 +133,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ orders, expenses, isDarkMo
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-10">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      
+      {/* Header - Improved Mobile Layout */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-gray-100 dark:border-slate-800 pb-6 md:border-0 md:pb-0">
         <div>
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <Activity className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-            Dashboard Geral
+                <Activity className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                Dashboard Geral
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Visão geral dos indicadores de performance e manutenção.</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Visão geral dos indicadores de performance.</p>
         </div>
 
-        <div className="flex items-center gap-3 bg-white dark:bg-slate-800 p-3 pr-5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
-             <div className="bg-indigo-50 dark:bg-indigo-900/30 p-2.5 rounded-lg hidden sm:block">
-                <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-             </div>
-             <div className="flex flex-col items-end sm:items-start">
-                <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Resumo de</span>
-                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200 capitalize bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded text-center min-w-[120px]">
+        <div className="w-full md:w-auto bg-white dark:bg-slate-800 p-2 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm flex items-center justify-between gap-3">
+             <div className="flex items-center gap-3 pl-2">
+                 <div className="bg-indigo-50 dark:bg-indigo-900/30 p-2.5 rounded-xl shrink-0">
+                    <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                 </div>
+                 <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider leading-tight mb-0.5">Resumo de</span>
+                    <span className="text-sm font-bold text-gray-800 dark:text-gray-100 capitalize leading-none">
                         {new Date().toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
                     </span>
-                </div>
-                <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-[10px] text-gray-400">Dados consolidados.</span>
-                    <button 
-                        onClick={() => onNavigate('reports')}
-                        className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-0.5 transition-colors hover:underline"
-                    >
-                        Clique aqui para conferir detalhes e relatórios <ArrowRight className="w-2.5 h-2.5" />
-                    </button>
-                </div>
+                 </div>
              </div>
+             
+             <button 
+                onClick={() => onNavigate('reports')}
+                className="flex items-center gap-1.5 bg-gray-50 dark:bg-slate-700/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-4 py-2.5 rounded-xl transition-all text-xs font-bold group"
+             >
+                <span className="hidden sm:inline">Ver Detalhes</span>
+                <span className="sm:hidden">Relatórios</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+             </button>
         </div>
       </div>
 
@@ -365,7 +366,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ orders, expenses, isDarkMo
                 </h3>
                 <div className="flex items-center gap-3">
                     <UnitFilter value={alertsFilter} onChange={setAlertsFilter} />
-                    <button onClick={() => alert('Ver todos')} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1">
+                    <button onClick={() => onNavigate('kanban')} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1">
                         Ver todos <ArrowRight size={12} />
                     </button>
                 </div>

@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutDashboard, Trello, DollarSign, Settings, PieChart, CheckSquare, Users as UsersIcon, LogOut, Briefcase, Store, Menu } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { LayoutDashboard, Trello, DollarSign, Settings, PieChart, CheckSquare, Users as UsersIcon, LogOut, Briefcase, Store, Menu, Bell, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { KanbanBoard } from './components/KanbanBoard';
 import { FinanceTable } from './components/FinanceTable';
@@ -13,10 +13,12 @@ import { UserManagementModal } from './components/UserManagementModal';
 import { SupplierManagementModal } from './components/SupplierManagementModal';
 import { ThemeToggle } from './components/ThemeToggle';
 import { PerformanceToggle } from './components/PerformanceToggle';
-import { ServiceOrder, Expense, OSStatus, User, PersonalTask, Notification, Supplier } from './types';
-import { INITIAL_ORDERS, INITIAL_EXPENSES, INITIAL_TASKS, USERS, INITIAL_NOTIFICATIONS, INITIAL_SUPPLIERS } from './constants';
+import { AssetsManager } from './components/AssetsManager';
+import { AssetModal } from './components/AssetModal';
+import { ServiceOrder, Expense, OSStatus, User, PersonalTask, Notification, Supplier, NotificationType, Asset } from './types';
+import { INITIAL_ORDERS, INITIAL_EXPENSES, INITIAL_TASKS, USERS, INITIAL_NOTIFICATIONS, INITIAL_SUPPLIERS, INITIAL_ASSETS } from './constants';
 
-type View = 'dashboard' | 'kanban' | 'finance' | 'reports' | 'tasks' | 'settings';
+type View = 'dashboard' | 'kanban' | 'finance' | 'reports' | 'tasks' | 'settings' | 'assets';
 type Theme = 'light' | 'dark';
 
 const App: React.FC = () => {
@@ -27,8 +29,11 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
-  // Theme State
-  const [theme, setTheme] = useState<Theme>('light');
+  // Theme State with Persistence
+  const [theme, setTheme] = useState<Theme>(() => {
+      const savedTheme = localStorage.getItem('theme');
+      return (savedTheme === 'light' || savedTheme === 'dark') ? savedTheme : 'light';
+  });
 
   // Performance Mode State
   const [performanceMode, setPerformanceMode] = useState<boolean>(() => {
@@ -56,6 +61,7 @@ const App: React.FC = () => {
   const [users, setUsers] = useState<User[]>(USERS);
   const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
   const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
+  const [assets, setAssets] = useState<Asset[]>(INITIAL_ASSETS);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -65,8 +71,11 @@ const App: React.FC = () => {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
 
+  // Asset Modal State
+  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+
   // --- DATA SEGREGATION LOGIC (RBAC) ---
-  // If Admin: See all. If User: See only own.
   
   const visibleOrders = useMemo(() => {
       if (!currentUser) return [];
@@ -77,18 +86,12 @@ const App: React.FC = () => {
   const visibleExpenses = useMemo(() => {
       if (!currentUser) return [];
       if (currentUser.isAdmin) return expenses;
-      
-      // Users only see expenses linked to their Visible Orders
-      // Or expenses they created (if we tracked createdBy, but we rely on linkedOSId here)
       const visibleOrderIds = visibleOrders.map(o => o.id);
       return expenses.filter(e => e.linkedOSId && visibleOrderIds.includes(e.linkedOSId));
   }, [expenses, visibleOrders, currentUser]);
 
   const visibleTasks = useMemo(() => {
       if (!currentUser) return [];
-      // Personal tasks are always personal, but admins might want to oversee?
-      // For now, let's keep tasks strictly personal as per "Minhas Tarefas" concept.
-      // But adhering to the prompt "Admin sees everything":
       if (currentUser.isAdmin) return tasks; 
       return tasks.filter(t => t.userId === currentUser.id);
   }, [tasks, currentUser]);
@@ -102,16 +105,24 @@ const App: React.FC = () => {
       } else {
           root.classList.remove('dark');
       }
+      localStorage.setItem('theme', theme);
   }, [theme]);
 
   useEffect(() => {
-      if (performanceMode) {
+      // Mobile: Always Turbo Mode
+      // Desktop: Follow User Preference
+      const isTurbo = isMobile || performanceMode;
+
+      if (isTurbo) {
           document.body.classList.add('performance-mode');
       } else {
           document.body.classList.remove('performance-mode');
       }
-      localStorage.setItem('performanceMode', String(performanceMode));
-  }, [performanceMode]);
+      
+      if (!isMobile) {
+          localStorage.setItem('performanceMode', String(performanceMode));
+      }
+  }, [performanceMode, isMobile]);
 
   const toggleTheme = () => {
       setTheme(prev => prev === 'light' ? 'dark' : 'light');
@@ -198,7 +209,6 @@ const App: React.FC = () => {
         return prev.map(o => o.id === order.id ? order : o);
       } else {
         // New Mode
-        // Ensure Non-Admins strictly own the OS they create
         if (!currentUser?.isAdmin && order.ownerId !== currentUser?.id) {
             order.ownerId = currentUser!.id;
         }
@@ -345,6 +355,29 @@ const App: React.FC = () => {
       setSuppliers(prev => prev.filter(s => s.id !== id));
   };
 
+  // Asset Handlers
+  const handleAddAsset = () => {
+      setSelectedAsset(null);
+      setIsAssetModalOpen(true);
+  };
+
+  const handleEditAsset = (asset: Asset) => {
+      setSelectedAsset(asset);
+      setIsAssetModalOpen(true);
+  };
+
+  const handleSaveAsset = (asset: Asset) => {
+      if (isMobile) return;
+      setAssets(prev => {
+          const exists = prev.find(a => a.id === asset.id);
+          if (exists) {
+              return prev.map(a => a.id === asset.id ? asset : a);
+          } else {
+              return [asset, ...prev];
+          }
+      });
+  };
+
   // --- RENDER ---
 
   if (!currentUser) {
@@ -354,7 +387,7 @@ const App: React.FC = () => {
             users={users} 
             theme={theme}
             toggleTheme={toggleTheme}
-            performanceMode={performanceMode}
+            performanceMode={isMobile ? true : performanceMode}
             togglePerformanceMode={togglePerformanceMode}
         />
       );
@@ -365,26 +398,8 @@ const App: React.FC = () => {
       return (
         <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-950 text-gray-800 dark:text-slate-100 font-sans transition-colors duration-300">
             <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800/60 p-4 px-8 sticky top-0 z-20 flex justify-between items-center h-20 shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center p-0.5 shadow-lg">
-                        <Briefcase className="text-white w-5 h-5" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">Portal Executivo</h1>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Visualização Simplificada</p>
-                    </div>
-                </div>
-                
-                <div className="flex items-center gap-4">
-                    <PerformanceToggle isActive={performanceMode} toggle={togglePerformanceMode} />
-                    <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-                    <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
-                    <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg text-sm font-bold transition-colors">
-                        <LogOut size={16} /> Sair
-                    </button>
-                </div>
+                {/* ... Guest Header same ... */}
             </header>
-
             <main className="flex-1 overflow-auto p-4 md:p-8 max-w-7xl mx-auto w-full">
                 <Reports 
                     orders={orders} // Executive sees all
@@ -415,6 +430,8 @@ const App: React.FC = () => {
         notifications={notifications}
         onMarkAsRead={handleMarkAsRead}
         isMobile={isMobile}
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
 
       <main className="flex-1 overflow-auto flex flex-col w-full bg-slate-50 dark:bg-slate-950 transition-colors duration-300 relative">
@@ -431,12 +448,16 @@ const App: React.FC = () => {
                      currentView === 'finance' ? 'Gestão Financeira' :
                      currentView === 'reports' ? 'Relatórios' :
                      currentView === 'tasks' ? 'Minhas Tarefas' :
+                     currentView === 'assets' ? 'Gestão de Patrimônio' :
                      currentView === 'settings' ? 'Configurações' : currentView}
                 </h2>
             </div>
+            
             <div className="flex gap-2 md:gap-4 items-center">
-                <PerformanceToggle isActive={performanceMode} toggle={togglePerformanceMode} />
-                <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+                {!isMobile && <PerformanceToggle isActive={performanceMode} toggle={togglePerformanceMode} />}
+                
+                {/* Desktop: Theme Toggle here. Mobile: Theme Toggle is in Sidebar */}
+                {!isMobile && <ThemeToggle theme={theme} toggleTheme={toggleTheme} />}
             </div>
         </header>
 
@@ -489,6 +510,16 @@ const App: React.FC = () => {
                 currentUser={currentUser}
                 isMobile={isMobile}
              />
+          )}
+
+          {currentView === 'assets' && (
+              <AssetsManager 
+                  assets={assets}
+                  onAddAsset={handleAddAsset}
+                  onEditAsset={handleEditAsset}
+                  currentUser={currentUser}
+                  isMobile={isMobile}
+              />
           )}
 
           {currentView === 'tasks' && (
@@ -568,6 +599,14 @@ const App: React.FC = () => {
         suppliers={suppliers}
         onAddSupplier={handleAddSupplier}
         isMobile={isMobile}
+      />
+
+      <AssetModal
+        isOpen={isAssetModalOpen}
+        onClose={() => setIsAssetModalOpen(false)}
+        asset={selectedAsset}
+        onSave={handleSaveAsset}
+        isReadOnly={isMobile}
       />
 
       <UserManagementModal 

@@ -318,11 +318,11 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
   const labelClass = "block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-1";
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
       
       {/* Delete Expense Confirmation */}
       {expenseToDelete && (
-        <div className="fixed inset-0 z-[60] bg-red-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[110] bg-red-950/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-sm border border-red-500 overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="bg-red-500 p-4 flex justify-center"><AlertOctagon className="w-10 h-10 text-white" /></div>
                 <div className="p-6 text-center">

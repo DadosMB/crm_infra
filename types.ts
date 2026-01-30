@@ -154,3 +154,55 @@ export interface Notification {
   linkId?: string; // ID to link (OS-XXX or FIN-XXX)
   userInitials?: string; // Initials of who triggered
 }
+
+// --- NOVOS TIPOS PARA PATRIMÔNIO (BENS) ---
+
+export enum AssetStatus {
+  ATIVO = 'Ativo',
+  INATIVO = 'Inativo',
+  EM_MANUTENCAO = 'Em Manutenção',
+  BAIXADO = 'Baixado',
+}
+
+export enum AssetCategory {
+  TI = 'TI / Informática',
+  COZINHA = 'Equip. Cozinha',
+  REFRIGERACAO = 'Refrigeração',
+  MOVEIS = 'Mobiliário',
+  ESTRUTURA = 'Estrutura / Predial',
+  OUTROS = 'Outros',
+}
+
+export interface AssetWarranty {
+  hasWarranty: boolean;
+  startDate?: string;
+  endDate?: string;
+  notes?: string;
+}
+
+export interface AssetInvoiceInfo {
+  supplierName?: string; // Texto livre, sem vínculo obrigatório com entidade Supplier
+  cnpj?: string;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  invoiceUrl?: string; // PDF link/base64
+}
+
+export interface Asset {
+  id: string;
+  assetTag: string; // Etiqueta física (Patrimônio)
+  name: string;
+  unit: Unit;
+  category: AssetCategory;
+  status: AssetStatus;
+  brand?: string;
+  model?: string;
+  description?: string;
+  value?: number;
+  photoUrl?: string;
+  registrationDate: string;
+  warranty: AssetWarranty;
+  invoiceInfo: AssetInvoiceInfo;
+  // Histórico simples de OS que esse equipamento passou
+  linkedOSIds?: string[];
+}

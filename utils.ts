@@ -1,4 +1,5 @@
-import { OSPriority, OSStatus, OSType } from './types';
+
+import { OSPriority, OSStatus, OSType, AssetWarranty } from './types';
 
 export const formatCurrency = (value: number) => {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -44,4 +45,16 @@ export const getTypeBadgeStyle = (type: OSType) => {
     case OSType.OUTROS: return 'bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-600';
     default: return 'bg-gray-50 text-gray-600';
   }
+};
+
+export const getWarrantyStatus = (warranty: AssetWarranty): 'active' | 'expired' | 'none' => {
+  if (!warranty.hasWarranty || !warranty.endDate) return 'none';
+  
+  const end = new Date(warranty.endDate);
+  const now = new Date();
+  // Reset time part for accurate date comparison
+  now.setHours(0,0,0,0);
+  end.setHours(0,0,0,0);
+
+  return end >= now ? 'active' : 'expired';
 };

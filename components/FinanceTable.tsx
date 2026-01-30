@@ -216,7 +216,7 @@ export const FinanceTable: React.FC<FinanceTableProps> = ({ expenses, orders, on
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      Array.from(e.target.files).forEach(file => {
+      Array.from(e.target.files).forEach((file: File) => {
           const reader = new FileReader();
           reader.onload = (event) => {
               const url = event.target?.result as string;
@@ -401,11 +401,11 @@ export const FinanceTable: React.FC<FinanceTableProps> = ({ expenses, orders, on
             <thead className="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-100 dark:bg-slate-700">
               <tr>
                 <th className="px-6 py-3">ID</th>
-                <SortableHeader label="Item" sortKey="item" sortConfig={sortConfig} onSort={handleSort} />
-                <SortableHeader label="Valor" sortKey="value" sortConfig={sortConfig} onSort={handleSort} />
-                <SortableHeader label="Data" sortKey="date" sortConfig={sortConfig} onSort={handleSort} />
-                <SortableHeader label="Unidade" sortKey="unit" sortConfig={sortConfig} onSort={handleSort} />
-                <SortableHeader label="Pagamento" sortKey="payment" sortConfig={sortConfig} onSort={handleSort} />
+                <SortableHeader label="Item" sortKey="item" currentSortKey={sortConfig?.key} direction={sortConfig?.direction} onSort={handleSort} />
+                <SortableHeader label="Valor" sortKey="value" currentSortKey={sortConfig?.key} direction={sortConfig?.direction} onSort={handleSort} />
+                <SortableHeader label="Data" sortKey="date" currentSortKey={sortConfig?.key} direction={sortConfig?.direction} onSort={handleSort} />
+                <SortableHeader label="Unidade" sortKey="unit" currentSortKey={sortConfig?.key} direction={sortConfig?.direction} onSort={handleSort} />
+                <SortableHeader label="Pagamento" sortKey="payment" currentSortKey={sortConfig?.key} direction={sortConfig?.direction} onSort={handleSort} />
                 <th className="px-6 py-3">OS Vinculada</th>
                 {!isMobile && <th className="px-6 py-3 text-right">Ações</th>}
               </tr>

@@ -1,4 +1,5 @@
-import { Expense, ExpenseCategory, OSPriority, OSStatus, OSType, PaymentMethod, ServiceOrder, Unit, User, PersonalTask, Notification, Supplier } from './types';
+
+import { Expense, ExpenseCategory, OSPriority, OSStatus, OSType, PaymentMethod, ServiceOrder, Unit, User, PersonalTask, Notification, Supplier, Asset, AssetStatus, AssetCategory } from './types';
 
 export const USERS: User[] = [
   {
@@ -44,6 +45,90 @@ export const INITIAL_SUPPLIERS: Supplier[] = [
     { id: 'sup8', name: 'Magalu', contactName: 'Site/App', category: 'Varejo', contact: 'Site' },
 ];
 
+export const INITIAL_ASSETS: Asset[] = [
+  {
+    id: 'ast-001',
+    assetTag: 'MB-TI-042',
+    name: 'Notebook Dell Vostro',
+    unit: Unit.ALDEOTA,
+    category: AssetCategory.TI,
+    status: AssetStatus.ATIVO,
+    brand: 'Dell',
+    model: 'Vostro 3510',
+    value: 3500.00,
+    registrationDate: '2025-11-15T10:00:00.000Z',
+    warranty: {
+      hasWarranty: true,
+      startDate: '2025-11-15',
+      endDate: '2026-11-15', // Garantia Ativa
+      notes: 'Garantia ProSupport on-site'
+    },
+    invoiceInfo: {
+      supplierName: 'Dell Computadores',
+      invoiceNumber: 'NF-998877',
+      invoiceDate: '2025-11-10'
+    },
+    linkedOSIds: []
+  },
+  {
+    id: 'ast-002',
+    assetTag: 'MB-REF-010',
+    name: 'Freezer Horizontal 2 Portas',
+    unit: Unit.ESTOQUE,
+    category: AssetCategory.REFRIGERACAO,
+    status: AssetStatus.ATIVO,
+    brand: 'Consul',
+    model: 'CHA31',
+    value: 2100.00,
+    registrationDate: '2024-05-20T08:00:00.000Z',
+    warranty: {
+      hasWarranty: true,
+      startDate: '2024-05-20',
+      endDate: '2025-05-20', // Garantia Vencida (simulação contexto 2026)
+    },
+    invoiceInfo: {
+      supplierName: 'Magalu Empresas',
+      invoiceNumber: '000.452.111'
+    },
+    linkedOSIds: ['OS-26013'] // Vinculado a uma OS de manutenção
+  },
+  {
+    id: 'ast-003',
+    assetTag: 'MB-COZ-005',
+    name: 'Fritadeira Industrial Gás',
+    unit: Unit.POKE,
+    category: AssetCategory.COZINHA,
+    status: AssetStatus.EM_MANUTENCAO,
+    brand: 'Vulcan',
+    model: 'LG300',
+    value: 4500.00,
+    registrationDate: '2025-01-10T09:00:00.000Z',
+    warranty: {
+      hasWarranty: false
+    },
+    invoiceInfo: {
+      supplierName: 'Requisipaes'
+    },
+    linkedOSIds: ['OS-26006']
+  },
+  {
+    id: 'ast-004',
+    assetTag: 'MB-MOV-102',
+    name: 'Cadeira Escritório Ergonômica',
+    unit: Unit.ADMINISTRATIVO,
+    category: AssetCategory.MOVEIS,
+    status: AssetStatus.BAIXADO,
+    brand: 'Flexform',
+    model: 'Uni',
+    value: 800.00,
+    registrationDate: '2023-02-01T10:00:00.000Z',
+    warranty: { hasWarranty: false },
+    invoiceInfo: {},
+    description: 'Quebrou o pistão, custo de reparo inviável.'
+  }
+];
+
+// ... (Rest of the file remains same: INITIAL_NOTIFICATIONS, INITIAL_TASKS, INITIAL_ORDERS, INITIAL_EXPENSES) ...
 export const INITIAL_NOTIFICATIONS: Notification[] = [
     {
         id: 'n1',

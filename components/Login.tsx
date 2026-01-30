@@ -79,7 +79,7 @@ export const Login: React.FC<LoginProps> = ({
       </div>
 
       {/* --- Global Controls (Universal Toggles) --- */}
-      <div className="absolute top-6 right-6 z-50 flex items-center gap-3 bg-white/50 dark:bg-black/30 backdrop-blur-md p-2 rounded-full border border-slate-200/50 dark:border-white/10 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+      <div className="absolute top-6 right-6 z-50 hidden md:flex items-center gap-3 bg-white/50 dark:bg-black/30 backdrop-blur-md p-2 rounded-full border border-slate-200/50 dark:border-white/10 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
           <PerformanceToggle isActive={performanceMode} toggle={togglePerformanceMode} />
           <div className="w-px h-6 bg-slate-300 dark:bg-white/10"></div>
           <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
