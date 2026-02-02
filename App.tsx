@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { LayoutDashboard, Trello, DollarSign, Settings, PieChart, CheckSquare, Users as UsersIcon, LogOut, Briefcase, Store, Menu, Bell, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { LayoutDashboard, Trello, DollarSign, Settings, PieChart, CheckSquare, Users as UsersIcon, LogOut, Briefcase, Store, Menu, Bell, AlertCircle, CheckCircle2, Layers, Calendar as CalendarIcon, Box } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { KanbanBoard } from './components/KanbanBoard';
 import { FinanceTable } from './components/FinanceTable';
@@ -8,6 +8,7 @@ import { OSModal } from './components/OSModal';
 import { Login } from './components/Login';
 import { Reports } from './components/Reports';
 import { TaskManager } from './components/TaskManager';
+import { CalendarView } from './components/CalendarView';
 import { Sidebar } from './components/Sidebar';
 import { UserManagementModal } from './components/UserManagementModal';
 import { SupplierManagementModal } from './components/SupplierManagementModal';
@@ -15,10 +16,13 @@ import { ThemeToggle } from './components/ThemeToggle';
 import { PerformanceToggle } from './components/PerformanceToggle';
 import { AssetsManager } from './components/AssetsManager';
 import { AssetModal } from './components/AssetModal';
-import { ServiceOrder, Expense, OSStatus, User, PersonalTask, Notification, Supplier, NotificationType, Asset } from './types';
-import { INITIAL_ORDERS, INITIAL_EXPENSES, INITIAL_TASKS, USERS, INITIAL_NOTIFICATIONS, INITIAL_SUPPLIERS, INITIAL_ASSETS } from './constants';
+import { AssetTransferModal } from './components/AssetTransferModal';
+import { AssetMaintenanceModal } from './components/AssetMaintenanceModal';
+import { CategoryManagementModal } from './components/CategoryManagementModal';
+import { ServiceOrder, Expense, OSStatus, User, PersonalTask, Notification, Supplier, NotificationType, Asset, Unit, MaintenanceRecord, AssetStatus, AssetCategory } from './types';
+import { INITIAL_ORDERS, INITIAL_EXPENSES, INITIAL_TASKS, USERS, INITIAL_NOTIFICATIONS, INITIAL_SUPPLIERS, INITIAL_ASSETS, INITIAL_MAINTENANCE_RECORDS } from './constants';
 
-type View = 'dashboard' | 'kanban' | 'finance' | 'reports' | 'tasks' | 'settings' | 'assets';
+type View = 'dashboard' | 'kanban' | 'finance' | 'reports' | 'tasks' | 'settings' | 'assets' | 'calendar';
 type Theme = 'light' | 'dark';
 
 const App: React.FC = () => {
@@ -62,6 +66,8 @@ const App: React.FC = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
   const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
   const [assets, setAssets] = useState<Asset[]>(INITIAL_ASSETS);
+  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>(INITIAL_MAINTENANCE_RECORDS);
+  const [assetCategories, setAssetCategories] = useState<string[]>(Object.values(AssetCategory));
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,9 +76,12 @@ const App: React.FC = () => {
   // Management Modals State
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
-  // Asset Modal State
+  // Asset Modals State
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
   // --- DATA SEGREGATION LOGIC (RBAC) ---
@@ -320,6 +329,15 @@ const App: React.FC = () => {
       setTasks(prev => prev.filter(t => t.id !== taskId));
   };
 
+  // Quick Task from Calendar
+  const handleQuickTaskFromCalendar = (date: string) => {
+      // Logic to switch view to Tasks and open modal (Simulated for now by adding directly or guiding user)
+      // For simplicity, we will just add a default task for that date or switch view
+      setCurrentView('tasks');
+      // In a real app, we would pass the date to the TaskManager to open the modal pre-filled
+      // Here we just switch view to keep it simple as requested "adapt... check loose ends"
+  };
+
   // User Management Handlers (Admin Only)
   const handleUpdateUser = (updatedUser: User) => {
       if (isMobile) return;
@@ -378,6 +396,43 @@ const App: React.FC = () => {
       });
   };
 
+  const handleBatchAddAssets = (newAssets: Asset[]) => {
+      if (isMobile) return;
+      setAssets(prev => [...newAssets, ...prev]);
+  };
+
+  const handleTransferAsset = (assetId: string, targetUnit: Unit) => {
+      if (isMobile) return;
+      setAssets(prev => prev.map(a => a.id === assetId ? { ...a, unit: targetUnit } : a));
+  };
+
+  const handleRegisterMaintenance = (record: MaintenanceRecord) => {
+      if (isMobile) return;
+      // 1. Add Record
+      setMaintenanceRecords(prev => [record, ...prev]);
+      // 2. Update Asset Status to EM_MANUTENCAO
+      setAssets(prev => prev.map(a => a.id === record.assetId ? { ...a, status: AssetStatus.EM_MANUTENCAO } : a));
+  };
+
+  const handleReturnAsset = (recordId: string) => {
+      if (isMobile) return;
+      const record = maintenanceRecords.find(r => r.id === recordId);
+      if(!record) return;
+
+      // 1. Deactivate Record
+      setMaintenanceRecords(prev => prev.map(r => r.id === recordId ? { ...r, active: false, dateReturned: new Date().toISOString() } : r));
+      // 2. Return Asset Status to ATIVO
+      setAssets(prev => prev.map(a => a.id === record.assetId ? { ...a, status: AssetStatus.ATIVO } : a));
+  };
+
+  // Asset Categories Management
+  const handleAddCategory = (cat: string) => {
+      setAssetCategories(prev => [...prev, cat]);
+  };
+  const handleDeleteCategory = (cat: string) => {
+      setAssetCategories(prev => prev.filter(c => c !== cat));
+  };
+
   // --- RENDER ---
 
   if (!currentUser) {
@@ -432,6 +487,7 @@ const App: React.FC = () => {
         isMobile={isMobile}
         theme={theme}
         toggleTheme={toggleTheme}
+        onEditProfile={() => setIsUserModalOpen(true)} // Added Handler
       />
 
       <main className="flex-1 overflow-auto flex flex-col w-full bg-slate-50 dark:bg-slate-950 transition-colors duration-300 relative">
@@ -449,6 +505,7 @@ const App: React.FC = () => {
                      currentView === 'reports' ? 'Relatórios' :
                      currentView === 'tasks' ? 'Minhas Tarefas' :
                      currentView === 'assets' ? 'Gestão de Patrimônio' :
+                     currentView === 'calendar' ? 'Calendário' :
                      currentView === 'settings' ? 'Configurações' : currentView}
                 </h2>
             </div>
@@ -461,13 +518,14 @@ const App: React.FC = () => {
             </div>
         </header>
 
-        <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full flex-1">
+        <div className="p-3 md:p-8 max-w-[1600px] mx-auto w-full flex-1">
           {currentView === 'dashboard' && (
               <Dashboard 
                 orders={visibleOrders} 
                 expenses={visibleExpenses} 
                 isDarkMode={theme === 'dark'} 
                 onNavigate={setCurrentView} 
+                isMobile={isMobile}
               />
           )}
           {currentView === 'kanban' && (
@@ -515,10 +573,28 @@ const App: React.FC = () => {
           {currentView === 'assets' && (
               <AssetsManager 
                   assets={assets}
+                  maintenanceRecords={maintenanceRecords}
                   onAddAsset={handleAddAsset}
                   onEditAsset={handleEditAsset}
+                  onTransferClick={() => setIsTransferModalOpen(true)}
+                  onMaintenanceClick={() => setIsMaintenanceModalOpen(true)}
+                  onReturnAsset={handleReturnAsset}
+                  onImportAssets={handleBatchAddAssets} // Pass import handler
                   currentUser={currentUser}
                   isMobile={isMobile}
+                  categories={assetCategories} // Pass categories
+              />
+          )}
+
+          {currentView === 'calendar' && (
+              <CalendarView 
+                  orders={visibleOrders}
+                  tasks={visibleTasks}
+                  maintenanceRecords={maintenanceRecords}
+                  expenses={visibleExpenses}
+                  onOpenOS={handleEditOS}
+                  onAddTask={handleQuickTaskFromCalendar}
+                  currentUser={currentUser}
               />
           )}
 
@@ -567,6 +643,22 @@ const App: React.FC = () => {
                     </button>
                  </div>
 
+                 {/* Categorias de Bens (Admin Only) */}
+                 <div className={`bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 ${isMobile || !currentUser.isAdmin ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">Gerenciar Categorias de Bens {!currentUser.isAdmin ? '(Admin)' : isMobile ? '(Desktop)' : ''}</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                        Adicione ou remova categorias para a classificação de patrimônios.
+                    </p>
+                    <button 
+                        onClick={() => setIsCategoryModalOpen(true)}
+                        disabled={!currentUser.isAdmin}
+                        className="w-full py-3 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-sm font-bold flex items-center justify-center gap-2 disabled:cursor-not-allowed"
+                    >
+                        <Layers size={18} />
+                        Gerenciar Categorias
+                    </button>
+                 </div>
+
                  <div className={`bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 ${isMobile ? 'opacity-50 pointer-events-none' : ''}`}>
                     <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">Gerenciar Usuários {isMobile && '(Desktop)'}</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
@@ -607,6 +699,21 @@ const App: React.FC = () => {
         asset={selectedAsset}
         onSave={handleSaveAsset}
         isReadOnly={isMobile}
+        categories={assetCategories}
+      />
+
+      <AssetTransferModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        assets={assets}
+        onTransfer={handleTransferAsset}
+      />
+
+      <AssetMaintenanceModal
+        isOpen={isMaintenanceModalOpen}
+        onClose={() => setIsMaintenanceModalOpen(false)}
+        assets={assets}
+        onRegisterMaintenance={handleRegisterMaintenance}
       />
 
       <UserManagementModal 
@@ -625,6 +732,14 @@ const App: React.FC = () => {
         onAddSupplier={handleAddSupplier}
         onUpdateSupplier={handleUpdateSupplier}
         onDeleteSupplier={handleDeleteSupplier}
+      />
+
+      <CategoryManagementModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        categories={assetCategories}
+        onAddCategory={handleAddCategory}
+        onDeleteCategory={handleDeleteCategory}
       />
     </div>
   );

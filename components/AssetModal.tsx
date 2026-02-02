@@ -9,9 +9,10 @@ interface AssetModalProps {
   asset: Asset | null; // null = creating new
   onSave: (asset: Asset) => void;
   isReadOnly?: boolean;
+  categories: string[]; // Added categories prop
 }
 
-export const AssetModal: React.FC<AssetModalProps> = ({ isOpen, onClose, asset, onSave, isReadOnly = false }) => {
+export const AssetModal: React.FC<AssetModalProps> = ({ isOpen, onClose, asset, onSave, isReadOnly = false, categories }) => {
   const [formData, setFormData] = useState<Partial<Asset>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +67,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({ isOpen, onClose, asset, 
 
   // Helper for inputs
   const inputClass = `w-full border border-gray-200 dark:border-slate-600 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-700/50 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-700 focus:outline-none transition-all placeholder-gray-400 ${isReadOnly ? 'opacity-60 cursor-not-allowed' : ''}`;
+  const numberInputClass = `${inputClass} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`;
   const labelClass = "block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-1";
 
   return (
@@ -157,7 +159,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({ isOpen, onClose, asset, 
                                 onChange={e => setFormData({...formData, category: e.target.value as AssetCategory})}
                                 disabled={isReadOnly}
                             >
-                                {Object.values(AssetCategory).map(c => <option key={c} value={c}>{c}</option>)}
+                                {categories.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                         </div>
 
@@ -192,7 +194,7 @@ export const AssetModal: React.FC<AssetModalProps> = ({ isOpen, onClose, asset, 
                                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                 <input 
                                     type="number" 
-                                    className={`${inputClass} pl-10`} 
+                                    className={`${numberInputClass} pl-10`} 
                                     value={formData.value || ''} 
                                     onChange={e => setFormData({...formData, value: Number(e.target.value)})} 
                                     placeholder="0.00"

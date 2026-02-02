@@ -206,3 +206,16 @@ export interface Asset {
   // Histórico simples de OS que esse equipamento passou
   linkedOSIds?: string[];
 }
+
+// --- CONTROLE DE MANUTENÇÃO EXTERNA ---
+export interface MaintenanceRecord {
+  id: string;
+  assetId: string;
+  providerName: string; // Quem está com o bem (Tec Services, Zé da Elétrica, etc)
+  contactInfo?: string; // Telefone ou Whatsapp
+  dateOut: string; // Quando saiu
+  dateReturnForecast?: string; // Previsão de volta
+  dateReturned?: string; // Quando voltou (se preenchido, está concluído)
+  description: string; // O que foi fazer? (Troca de cabo, orçamento...)
+  active: boolean; // Se true, o bem está fora. Se false, já voltou.
+}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../types';
 import { X, Pencil, Trash2, Shield, ShieldAlert, Check, Save, User as UserIcon, Camera, Mail, Lock, Briefcase } from 'lucide-react';
@@ -27,10 +28,17 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   // Reset state when opening/closing
   useEffect(() => {
       if(isOpen) {
-          setView('list');
-          setEditingUser(null);
+          // If admin, show list. If simple user, go straight to edit self.
+          if (currentUser.isAdmin) {
+              setView('list');
+              setEditingUser(null);
+          } else {
+              setEditingUser(currentUser);
+              setFormData({ ...currentUser });
+              setView('edit');
+          }
       }
-  }, [isOpen]);
+  }, [isOpen, currentUser]);
 
   if (!isOpen) return null;
 
@@ -46,9 +54,14 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   };
 
   const handleBack = () => {
-      setView('list');
-      setEditingUser(null);
-      setFormData({});
+      // If admin, go back to list. If user, close modal.
+      if (currentUser.isAdmin) {
+          setView('list');
+          setEditingUser(null);
+          setFormData({});
+      } else {
+          onClose();
+      }
   };
 
   const handleSave = () => {
@@ -99,7 +112,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-slate-800">
             
-            {/* VIEW: LIST */}
+            {/* VIEW: LIST (Only visible to admins) */}
             {view === 'list' && (
                 <div className="space-y-4">
                     {visibleUsers.map(user => (
@@ -138,116 +151,139 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
             {/* VIEW: EDIT */}
             {view === 'edit' && editingUser && (
                 <div className="space-y-6">
-                    
-                    {/* Avatar Upload */}
-                    <div className="flex flex-col items-center">
-                        <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                            <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold text-white shadow-lg overflow-hidden ring-4 ring-gray-50 dark:ring-slate-700 transition-all ${!formData.avatarUrl ? editingUser.color : 'bg-gray-200'}`}>
-                                {formData.avatarUrl ? (
-                                    <img src={formData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                                ) : (
-                                    editingUser.initials
-                                )}
-                            </div>
-                            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Camera className="text-white w-8 h-8" />
-                            </div>
-                            <input 
-                                type="file" 
-                                ref={fileInputRef} 
-                                className="hidden" 
-                                accept="image/*"
-                                onChange={handleFileChange}
-                            />
-                        </div>
-                        <p className="text-xs text-gray-400 mt-2">Clique para alterar a foto</p>
-                    </div>
+                    {/* Logic Vars */}
+                    {(() => {
+                        // User can change their own photo. Admin cannot change other's photo.
+                        const isSelf = editingUser.id === currentUser.id;
+                        const canEditPhoto = isSelf; 
+                        
+                        // Admin can change everything else for others. User cannot change text details.
+                        const canEditDetails = currentUser.isAdmin; 
 
-                    <div className="space-y-4">
-                        {/* Name (Admin Only) */}
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-1">Nome Completo</label>
-                            <div className="relative">
-                                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <input 
-                                    type="text" 
-                                    className={`${inputClass} pl-10 ${!currentUser.isAdmin ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                    value={formData.name || ''}
-                                    onChange={e => setFormData({...formData, name: e.target.value})}
-                                    readOnly={!currentUser.isAdmin}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Email */}
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-1">Email</label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <input 
-                                    type="email" 
-                                    className={`${inputClass} pl-10`}
-                                    value={formData.email || ''}
-                                    onChange={e => setFormData({...formData, email: e.target.value})}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Password */}
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-1">Senha</label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <input 
-                                    type="text" 
-                                    className={`${inputClass} pl-10`}
-                                    value={formData.password || ''}
-                                    onChange={e => setFormData({...formData, password: e.target.value})}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Role & Permissions (Admin Only) */}
-                        {currentUser.isAdmin && (
-                            <div className="grid grid-cols-2 gap-4 pt-2 border-t dark:border-slate-700">
-                                <div className="col-span-2">
-                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-1">Cargo / Função</label>
-                                    <div className="relative">
-                                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                        <input 
-                                            type="text" 
-                                            className={`${inputClass} pl-10`}
-                                            value={formData.role || ''}
-                                            onChange={e => setFormData({...formData, role: e.target.value})}
-                                        />
-                                    </div>
-                                </div>
-                                
-                                <div className="col-span-2 flex items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl border border-slate-200 dark:border-slate-600">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-lg ${formData.isAdmin ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-gray-200 dark:bg-slate-600 text-gray-500'}`}>
-                                            <Shield size={20} />
+                        return (
+                            <>
+                                {/* Avatar Upload */}
+                                <div className="flex flex-col items-center">
+                                    <div 
+                                        className={`relative ${canEditPhoto ? 'group cursor-pointer' : ''}`} 
+                                        onClick={() => canEditPhoto && fileInputRef.current?.click()}
+                                    >
+                                        <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold text-white shadow-lg overflow-hidden ring-4 ring-gray-50 dark:ring-slate-700 transition-all ${!formData.avatarUrl ? editingUser.color : 'bg-gray-200'}`}>
+                                            {formData.avatarUrl ? (
+                                                <img src={formData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                                            ) : (
+                                                editingUser.initials
+                                            )}
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-800 dark:text-white">Acesso Administrador</p>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">Permissão total ao sistema</p>
+                                        {canEditPhoto && (
+                                            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Camera className="text-white w-8 h-8" />
+                                            </div>
+                                        )}
+                                        {canEditPhoto && (
+                                            <input 
+                                                type="file" 
+                                                ref={fileInputRef} 
+                                                className="hidden" 
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                            />
+                                        )}
+                                    </div>
+                                    {canEditPhoto && <p className="text-xs text-gray-400 mt-2">Clique para alterar a foto</p>}
+                                    {!canEditPhoto && <p className="text-xs text-gray-400 mt-2 italic">Foto gerida pelo usuário</p>}
+                                </div>
+
+                                <div className="space-y-4">
+                                    {/* Name */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-1">Nome Completo</label>
+                                        <div className="relative">
+                                            <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                            <input 
+                                                type="text" 
+                                                className={`${inputClass} pl-10 ${!canEditDetails ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                                value={formData.name || ''}
+                                                onChange={e => setFormData({...formData, name: e.target.value})}
+                                                readOnly={!canEditDetails}
+                                            />
                                         </div>
                                     </div>
-                                    
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input 
-                                            type="checkbox" 
-                                            className="sr-only peer" 
-                                            checked={formData.isAdmin || false}
-                                            onChange={e => setFormData({...formData, isAdmin: e.target.checked})}
-                                            disabled={editingUser.id === currentUser.id} // Cannot remove own admin status to prevent lockout
-                                        />
-                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                                    </label>
+
+                                    {/* Email */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-1">Email</label>
+                                        <div className="relative">
+                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                            <input 
+                                                type="email" 
+                                                className={`${inputClass} pl-10 ${!canEditDetails ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                                value={formData.email || ''}
+                                                onChange={e => setFormData({...formData, email: e.target.value})}
+                                                readOnly={!canEditDetails}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Password */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-1">Senha</label>
+                                        <div className="relative">
+                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                            <input 
+                                                type="text" 
+                                                className={`${inputClass} pl-10 ${!canEditDetails ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                                value={formData.password || ''}
+                                                onChange={e => setFormData({...formData, password: e.target.value})}
+                                                readOnly={!canEditDetails}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Role & Permissions (Visible only if user is admin, but readable/editable based on logic) */}
+                                    {currentUser.isAdmin && (
+                                        <div className="grid grid-cols-2 gap-4 pt-2 border-t dark:border-slate-700">
+                                            <div className="col-span-2">
+                                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1.5 ml-1">Cargo / Função</label>
+                                                <div className="relative">
+                                                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                    <input 
+                                                        type="text" 
+                                                        className={`${inputClass} pl-10`}
+                                                        value={formData.role || ''}
+                                                        onChange={e => setFormData({...formData, role: e.target.value})}
+                                                    />
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="col-span-2 flex items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl border border-slate-200 dark:border-slate-600">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2 rounded-lg ${formData.isAdmin ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-gray-200 dark:bg-slate-600 text-gray-500'}`}>
+                                                        <Shield size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-slate-800 dark:text-white">Acesso Administrador</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400">Permissão total ao sistema</p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={formData.isAdmin || false}
+                                                        onChange={e => setFormData({...formData, isAdmin: e.target.checked})}
+                                                        disabled={editingUser.id === currentUser.id} // Cannot remove own admin status to prevent lockout
+                                                    />
+                                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            </>
+                        );
+                    })()}
                 </div>
             )}
 
@@ -257,6 +293,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
         <div className="p-4 border-t dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex justify-between">
             {view === 'edit' ? (
                 <>
+                    {/* Delete button only visible to admins AND not deleting themselves */}
                     {currentUser.isAdmin && editingUser?.id !== currentUser.id ? (
                         <button onClick={handleDelete} className="px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
                             <Trash2 size={16} /> Excluir

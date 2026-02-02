@@ -5,6 +5,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { FileText, Filter, Calendar, TrendingUp, DollarSign, Activity, Search, ArrowUpRight, Download, ChevronDown, Hourglass, Zap, Check, Layers, ArrowDown, ArrowUp, ArrowUpDown, FileCheck, PieChart as PieChartIcon, Contact, Phone, User as UserIcon, X, Archive, Lock, Link as LinkIcon, CalendarCheck, FileOutput } from 'lucide-react';
 import { PaymentScheduleModal } from './PaymentScheduleModal';
 
+// ... (Existing Imports) ...
+
 interface ReportsProps {
   orders: ServiceOrder[];
   expenses: Expense[];
@@ -16,7 +18,7 @@ interface ReportsProps {
   isMobile?: boolean;
 }
 
-// ... (Constants remains same) ...
+// Colors
 const COLORS_STATUS = {
   CONCLUIDA: '#10b981', // Emerald 500
   EM_ANDAMENTO: '#a855f7', // Purple 500
@@ -40,7 +42,7 @@ const MONTHS_LABELS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho
 const SHORT_MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const YEARS = [2026, 2027];
 
-// ... (FilterDropdown remains same) ...
+// Optimized Dropdown
 const FilterDropdown = ({ 
     label, 
     count, 
@@ -75,7 +77,7 @@ const FilterDropdown = ({
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
-                    flex items-center gap-2 rounded-xl border transition-all duration-300 font-medium text-sm
+                    flex items-center gap-2 rounded-xl border transition-all duration-300 font-medium text-sm whitespace-nowrap
                     ${compact ? 'px-3 py-2 text-xs' : 'px-4 py-2.5'}
                     ${isOpen 
                         ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 shadow-sm ring-2 ring-indigo-100 dark:ring-indigo-900' 
@@ -92,7 +94,6 @@ const FilterDropdown = ({
                 <ChevronDown className={`w-3.5 h-3.5 ml-1 transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`} />
             </button>
 
-            {/* Dropdown Menu - z-50 ensures it floats above */}
             {isOpen && (
                 <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
                     <div className="max-h-72 overflow-y-auto custom-scrollbar p-2">
@@ -106,7 +107,7 @@ const FilterDropdown = ({
 
 
 export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, isDarkMode = false, onOpenOS, onUpdateExpenses, currentUser, isMobile = false }) => {
-  // ... (State initialization same) ...
+  // Filters State
   const [activeTab, setActiveTab] = useState<'managerial' | 'financial' | 'closed_os' | 'financial_records'>('managerial');
   const [isSupplierListOpen, setIsSupplierListOpen] = useState(false);
   const [isPaymentScheduleOpen, setIsPaymentScheduleOpen] = useState(false);
@@ -114,18 +115,22 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
   const [selectedYear, setSelectedYear] = useState(2026);
   const [selectedUnits, setSelectedUnits] = useState<Unit[]>([]);
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
+  
+  // Table State
   const [searchTerm, setSearchTerm] = useState('');
   const [tableYear, setTableYear] = useState<number>(2026);
   const [tableUnits, setTableUnits] = useState<Unit[]>([]);
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([]);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  
+  // Dropdown UI State
   const [showYearDrop, setShowYearDrop] = useState(false);
   const [showUnitDrop, setShowUnitDrop] = useState(false);
   const [showMonthDrop, setShowMonthDrop] = useState(false);
   const [showTableYearDrop, setShowTableYearDrop] = useState(false);
   const [showTableUnitDrop, setShowTableUnitDrop] = useState(false);
 
-  // ... (Toggle handlers same) ...
+  // Handlers
   const toggleUnit = (unit: Unit) => { setSelectedUnits(prev => prev.includes(unit) ? prev.filter(u => u !== unit) : [...prev, unit] ); };
   const toggleMonth = (monthIndex: number) => { setSelectedMonths(prev => prev.includes(monthIndex) ? prev.filter(m => m !== monthIndex) : [...prev, monthIndex].sort((a,b) => a-b) ); };
   const clearUnits = () => setSelectedUnits([]);
@@ -136,7 +141,8 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
   const toggleSelectAll = (filteredData: Expense[]) => { if (selectedExpenseIds.length === filteredData.length) { setSelectedExpenseIds([]); } else { setSelectedExpenseIds(filteredData.map(e => e.id)); } };
   const handleSort = (key: string) => { let direction: 'asc' | 'desc' = 'asc'; if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') { direction = 'desc'; } setSortConfig({ key, direction }); };
 
-  // ... (Memoized data same) ...
+  // --- Memoized Data Logic ---
+  
   const chartOrders = useMemo(() => {
     return orders.filter(o => {
       const dateRef = new Date(o.dateOpened);
@@ -147,22 +153,6 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
     });
   }, [orders, selectedYear, selectedUnits, selectedMonths]);
 
-  const archivedOrders = useMemo(() => {
-    let data = orders.filter(o => o.archived === true);
-    data = data.filter(o => new Date(o.dateOpened).getFullYear() === tableYear);
-    if (tableUnits.length > 0) { data = data.filter(o => tableUnits.includes(o.unit)); }
-    if (searchTerm) { const lowerSearch = searchTerm.toLowerCase(); data = data.filter(o => o.title.toLowerCase().includes(lowerSearch) || o.id.toLowerCase().includes(lowerSearch) ); }
-    const dataWithCost = data.map(o => ({ ...o, computedCost: expenses.filter(e => e.linkedOSId === o.id).reduce((acc, curr) => acc + curr.value, 0) }));
-    if (sortConfig) {
-        dataWithCost.sort((a, b) => {
-            let valA: any = ''; let valB: any = '';
-            switch (sortConfig.key) { case 'title': valA = a.title.toLowerCase(); valB = b.title.toLowerCase(); break; case 'unit': valA = a.unit.toLowerCase(); valB = b.unit.toLowerCase(); break; case 'date': valA = a.dateClosed ? new Date(a.dateClosed).getTime() : 0; valB = b.dateClosed ? new Date(b.dateClosed).getTime() : 0; break; case 'cost': valA = a.computedCost; valB = b.computedCost; break; default: return 0; }
-            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1; if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1; return 0;
-        });
-    }
-    return dataWithCost;
-  }, [orders, expenses, searchTerm, tableYear, tableUnits, sortConfig]);
-
   const filteredExpenses = useMemo(() => {
       return expenses.filter(e => {
           const eDate = new Date(e.date);
@@ -172,30 +162,6 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
           return matchYear && matchUnit && matchMonth;
       });
   }, [expenses, selectedYear, selectedUnits, selectedMonths]);
-
-  const filteredSuppliers = useMemo(() => {
-      if(!supplierSearch) return suppliers;
-      const lower = supplierSearch.toLowerCase();
-      return suppliers.filter(s => s.name.toLowerCase().includes(lower) || s.category.toLowerCase().includes(lower) || (s.contactName && s.contactName.toLowerCase().includes(lower)) );
-  }, [suppliers, supplierSearch]);
-
-  const archivedExpenses = useMemo(() => {
-      let data = expenses.filter(e => {
-          const linkedOS = orders.find(o => o.id === e.linkedOSId);
-          return linkedOS?.archived === true || e.status === ExpenseStatus.PROGRAMADO || e.status === ExpenseStatus.PAGO;
-      });
-      data = data.filter(e => new Date(e.date).getFullYear() === tableYear);
-      if (tableUnits.length > 0) { data = data.filter(e => tableUnits.includes(e.unit)); }
-      if (searchTerm) { const lowerSearch = searchTerm.toLowerCase(); data = data.filter(e => e.item.toLowerCase().includes(lowerSearch) || e.supplier.toLowerCase().includes(lowerSearch) || e.id.toLowerCase().includes(lowerSearch) || (e.linkedOSId && e.linkedOSId.toLowerCase().includes(lowerSearch)) ); }
-      if (sortConfig) {
-          data.sort((a, b) => {
-              let valA: any = ''; let valB: any = '';
-              switch(sortConfig.key) { case 'item': valA = a.item.toLowerCase(); valB = b.item.toLowerCase(); break; case 'value': valA = a.value; valB = b.value; break; case 'date': valA = new Date(a.date).getTime(); valB = new Date(b.date).getTime(); break; case 'unit': valA = a.unit.toLowerCase(); valB = b.unit.toLowerCase(); break; case 'linkedOSId': valA = a.linkedOSId || ''; valB = b.linkedOSId || ''; break; default: return 0; }
-              if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1; if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1; return 0;
-          });
-      }
-      return data;
-  }, [expenses, orders, tableYear, tableUnits, searchTerm, sortConfig]);
 
   const totalSpent = filteredExpenses.reduce((acc, curr) => acc + curr.value, 0);
   const totalOrders = chartOrders.length;
@@ -242,18 +208,57 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
       return Object.keys(counts).map(key => ({ name: key, value: counts[key] })).sort((a, b) => b.value - a.value);
   }, [filteredExpenses]);
 
-  // ... (Custom Tooltip same) ...
+  // Tables Data logic
+  const archivedOrders = useMemo(() => {
+    let data = orders.filter(o => o.archived === true);
+    data = data.filter(o => new Date(o.dateOpened).getFullYear() === tableYear);
+    if (tableUnits.length > 0) { data = data.filter(o => tableUnits.includes(o.unit)); }
+    if (searchTerm) { const lowerSearch = searchTerm.toLowerCase(); data = data.filter(o => o.title.toLowerCase().includes(lowerSearch) || o.id.toLowerCase().includes(lowerSearch) ); }
+    const dataWithCost = data.map(o => ({ ...o, computedCost: expenses.filter(e => e.linkedOSId === o.id).reduce((acc, curr) => acc + curr.value, 0) }));
+    if (sortConfig) {
+        dataWithCost.sort((a, b) => {
+            let valA: any = ''; let valB: any = '';
+            switch (sortConfig.key) { case 'title': valA = a.title.toLowerCase(); valB = b.title.toLowerCase(); break; case 'unit': valA = a.unit.toLowerCase(); valB = b.unit.toLowerCase(); break; case 'date': valA = a.dateClosed ? new Date(a.dateClosed).getTime() : 0; valB = b.dateClosed ? new Date(b.dateClosed).getTime() : 0; break; case 'cost': valA = a.computedCost; valB = b.computedCost; break; default: return 0; }
+            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1; if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1; return 0;
+        });
+    }
+    return dataWithCost;
+  }, [orders, expenses, searchTerm, tableYear, tableUnits, sortConfig]);
+
+  const archivedExpenses = useMemo(() => {
+      let data = expenses.filter(e => {
+          const linkedOS = orders.find(o => o.id === e.linkedOSId);
+          return linkedOS?.archived === true || e.status === ExpenseStatus.PROGRAMADO || e.status === ExpenseStatus.PAGO;
+      });
+      data = data.filter(e => new Date(e.date).getFullYear() === tableYear);
+      if (tableUnits.length > 0) { data = data.filter(e => tableUnits.includes(e.unit)); }
+      if (searchTerm) { const lowerSearch = searchTerm.toLowerCase(); data = data.filter(e => e.item.toLowerCase().includes(lowerSearch) || e.supplier.toLowerCase().includes(lowerSearch) || e.id.toLowerCase().includes(lowerSearch) || (e.linkedOSId && e.linkedOSId.toLowerCase().includes(lowerSearch)) ); }
+      if (sortConfig) {
+          data.sort((a, b) => {
+              let valA: any = ''; let valB: any = '';
+              switch(sortConfig.key) { case 'item': valA = a.item.toLowerCase(); valB = b.item.toLowerCase(); break; case 'value': valA = a.value; valB = b.value; break; case 'date': valA = new Date(a.date).getTime(); valB = new Date(b.date).getTime(); break; case 'unit': valA = a.unit.toLowerCase(); valB = b.unit.toLowerCase(); break; case 'linkedOSId': valA = a.linkedOSId || ''; valB = b.linkedOSId || ''; break; default: return 0; }
+              if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1; if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1; return 0;
+          });
+      }
+      return data;
+  }, [expenses, orders, tableYear, tableUnits, searchTerm, sortConfig]);
+
+  const filteredSuppliers = useMemo(() => {
+      if(!supplierSearch) return suppliers;
+      const lower = supplierSearch.toLowerCase();
+      return suppliers.filter(s => s.name.toLowerCase().includes(lower) || s.category.toLowerCase().includes(lower) || (s.contactName && s.contactName.toLowerCase().includes(lower)) );
+  }, [suppliers, supplierSearch]);
+
   const CustomTooltip = ({ active, payload, label, type }: any) => { if (active && payload && payload.length) { return ( <div className="bg-slate-900/95 text-white p-3 shadow-2xl rounded-xl text-xs border border-slate-700/50 backdrop-blur-md z-50"> <p className="font-bold mb-2 opacity-90 border-b border-white/10 pb-1">{label || payload[0].name}</p> {payload.map((entry: any, index: number) => ( <div key={index} className="flex items-center justify-between gap-4 mb-1"> <div className="flex items-center gap-2"> <div className="w-2 h-2 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]" style={{ backgroundColor: entry.payload.color || entry.color }} /> <span className="opacity-80 text-slate-300 font-medium">{entry.name}</span> </div> <span className="font-bold font-mono"> {type === 'currency' || entry.name === 'Valor' || entry.dataKey === 'valor' ? Number(entry.value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : entry.value} </span> </div> ))} </div> ); } return null; };
 
-  // --- CSV EXPORT FUNCTIONALITY ---
   const handleExportCSV = () => {
-      if (isMobile) return; // Prevent export on mobile
+      if (isMobile) return; 
       const headers = ['ID', 'Data', 'Categoria', 'Item', 'Valor', 'Unidade', 'Fornecedor', 'Pagamento'];
       const rows = filteredExpenses.map(e => [
           e.id,
           new Date(e.date).toLocaleDateString('pt-BR'),
           e.category,
-          `"${e.item.replace(/"/g, '""')}"`, // Escape quotes
+          `"${e.item.replace(/"/g, '""')}"`,
           e.value.toFixed(2),
           e.unit,
           e.supplier,
@@ -272,7 +277,6 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
       document.body.removeChild(link);
   };
 
-  // ... (Sortable Header same) ...
   const SortableHeader = ({ label, sortKey, align = 'left', width, className }: { label: string, sortKey?: string, align?: 'left' | 'center' | 'right', width?: string, className?: string }) => (
     <th className={`px-6 py-4 text-xs font-bold uppercase tracking-wider transition-colors select-none ${width ? width : ''} ${align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'} ${sortKey ? 'cursor-pointer hover:bg-slate-100/80 dark:hover:bg-slate-700/80 hover:text-indigo-600 dark:hover:text-indigo-400 group' : 'text-slate-400 dark:text-slate-500'} ${sortConfig?.key === sortKey ? 'bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'} ${className || ''}`} onClick={() => sortKey && handleSort(sortKey)}>
         <div className={`flex items-center gap-1.5 ${align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : 'justify-start'}`}>
@@ -287,13 +291,12 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
       
       {/* Header & SUBMENU */}
       <div className="flex flex-col gap-6">
-        <div className="flex justify-between items-start xl:items-center">
-            <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-4">
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+            <div className="flex flex-col gap-1 w-full xl:w-auto">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     <h2 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Relatórios</h2>
                     
-                    {/* Supplier Directory Button (Read-Only) */}
-                    <button onClick={() => setIsSupplierListOpen(true)} className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all text-xs font-bold shadow-sm" title="Ver lista de contatos">
+                    <button onClick={() => setIsSupplierListOpen(true)} className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all text-xs font-bold shadow-sm w-full sm:w-auto" title="Ver lista de contatos">
                         <Contact size={14} /> Lista de Fornecedores
                     </button>
                 </div>
@@ -302,7 +305,7 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
             
             {/* Global Filter Bar */}
             {activeTab !== 'closed_os' && activeTab !== 'financial_records' && (
-                <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-800 p-2 pr-3 rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 relative z-40">
+                <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-800 p-2 pr-3 rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 relative z-40 w-full xl:w-auto">
                     <FilterDropdown label={selectedYear.toString()} isOpen={showYearDrop} setIsOpen={setShowYearDrop} icon={Calendar}>
                         <div className="flex flex-col p-1">{YEARS.map(year => (<button key={year} onClick={() => { setSelectedYear(year); setShowYearDrop(false); }} className={`px-4 py-2 text-left rounded-xl text-sm font-semibold transition-colors ${selectedYear === year ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{year}</button>))}</div>
                     </FilterDropdown>
@@ -324,11 +327,11 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit flex-wrap">
-            <button onClick={() => setActiveTab('managerial')} className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'managerial' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}><PieChartIcon size={16} /> Relatórios Gerenciais</button>
-            <button onClick={() => setActiveTab('financial')} className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'financial' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}><DollarSign size={16} /> Financeiro</button>
-            <button onClick={() => setActiveTab('closed_os')} className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'closed_os' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}><FileCheck size={16} /> OS Concluídas</button>
-            <button onClick={() => setActiveTab('financial_records')} className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'financial_records' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}><Archive size={16} /> Histórico Financeiro</button>
+        <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full md:w-fit overflow-x-auto md:overflow-visible">
+            <button onClick={() => setActiveTab('managerial')} className={`flex-1 md:flex-none justify-center flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'managerial' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}><PieChartIcon size={16} /> Relatórios Gerenciais</button>
+            <button onClick={() => setActiveTab('financial')} className={`flex-1 md:flex-none justify-center flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'financial' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}><DollarSign size={16} /> Financeiro</button>
+            <button onClick={() => setActiveTab('closed_os')} className={`flex-1 md:flex-none justify-center flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'closed_os' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}><FileCheck size={16} /> OS Concluídas</button>
+            <button onClick={() => setActiveTab('financial_records')} className={`flex-1 md:flex-none justify-center flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'financial_records' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}><Archive size={16} /> Histórico Financeiro</button>
         </div>
       </div>
 
@@ -338,20 +341,19 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
             
             {/* KPI CARDS (Operational Focused) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {/* ... (KPI Cards same as before) ... */}
                 <div className="bg-gradient-to-br from-indigo-600 to-violet-700 dark:from-indigo-800 dark:to-violet-900 p-6 rounded-3xl shadow-[0_10px_40px_-10px_rgba(99,102,241,0.5)] dark:shadow-none relative overflow-hidden group text-white transform hover:-translate-y-1 transition-all duration-300"><div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white opacity-10 blur-2xl group-hover:scale-150 transition-transform duration-700"></div><div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 rounded-full bg-indigo-400 opacity-20 blur-xl"></div><div className="flex justify-between items-start mb-6 relative z-10"><div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl border border-white/10"><Hourglass className="w-6 h-6 text-white" /></div><div className="px-2.5 py-1 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold uppercase tracking-wider text-indigo-100 flex items-center gap-1"><Zap size={10} className="fill-yellow-400 text-yellow-400" /> KPI Principal</div></div><div className="relative z-10 text-center"><h3 className="text-5xl font-extrabold text-white tracking-tight leading-none mb-1">{pmaValue.toString().replace('.', ',')}</h3><p className="text-sm font-medium text-indigo-100 opacity-80 uppercase tracking-widest">PMA (Dias)</p></div></div>
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow relative overflow-hidden group flex flex-col justify-between"><div className="flex justify-between items-start mb-4"><div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl"><Activity className="w-6 h-6 text-blue-600 dark:text-blue-400" /></div></div><div><p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide">Total de OS</p><h3 className="text-3xl font-bold text-slate-800 dark:text-white tracking-tight">{totalOrders}</h3><p className="text-xs text-slate-400 dark:text-slate-500 mt-2">Demandas geradas</p></div></div>
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow relative overflow-hidden group flex flex-col justify-between"><div className="flex justify-between items-start mb-4"><div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl"><Check className="w-6 h-6 text-emerald-600 dark:text-emerald-400" /></div></div><div><p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide">Taxa Conclusão</p><h3 className="text-3xl font-bold text-slate-800 dark:text-white tracking-tight">{totalOrders > 0 ? Math.round((statusData.find(d => d.name === 'Concluídas')?.value || 0) / totalOrders * 100) : 0}%</h3><p className="text-xs text-slate-400 dark:text-slate-500 mt-2">Eficiência operacional</p></div></div>
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow relative overflow-hidden group flex flex-col justify-between"><div className="flex justify-between items-start mb-4"><div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-2xl"><Layers className="w-6 h-6 text-orange-600 dark:text-orange-400" /></div></div><div><p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide">Lojas Ativas</p><h3 className="text-3xl font-bold text-slate-800 dark:text-white tracking-tight">{unitData.length}</h3><p className="text-xs text-slate-400 dark:text-slate-500 mt-2">Com solicitações no período</p></div></div>
             </div>
 
-            {/* CHARTS ROW */}
+            {/* CHARTS ROW - Fixed Heights for Recharts */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none flex flex-col items-center h-96 hover:shadow-lg transition-shadow duration-300">
                     <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-0.5 w-full text-left">Manutenções</h3>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider w-full text-left">Status Geral das Ordens</p>
                     <div className="w-full h-[280px] mt-4 relative">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+                        <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie data={statusData} cx="50%" cy="50%" innerRadius={65} outerRadius={85} paddingAngle={5} cornerRadius={8} dataKey="value" stroke="none">
                                     {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
@@ -370,7 +372,7 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
                     <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-0.5 w-full text-left">Tipos de OS</h3>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider w-full text-left">Classificação Técnica</p>
                     <div className="w-full h-[280px] mt-4 relative">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+                        <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie data={typeData} cx="50%" cy="50%" innerRadius={65} outerRadius={85} paddingAngle={5} cornerRadius={8} dataKey="value" stroke="none">
                                     {typeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
@@ -389,7 +391,7 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
                     <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-0.5 w-full text-left">Volume por Loja</h3>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider w-full text-left">Distribuição das Demandas</p>
                     <div className="w-full h-[280px] mt-4 relative">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+                        <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie data={unitData} cx="50%" cy="50%" innerRadius={65} outerRadius={85} paddingAngle={2} cornerRadius={4} dataKey="value" stroke="none">
                                     {unitData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
@@ -425,29 +427,77 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
             )}
 
             {/* Financial KPIs */}
-            {/* ... (KPIs and Charts same) ... */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow relative overflow-hidden group flex flex-col justify-between"><div className="flex justify-between items-start mb-4"><div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl"><DollarSign className="w-6 h-6 text-emerald-600 dark:text-emerald-400" /></div></div><div><p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide">Total Gasto</p><h3 className="text-4xl font-bold text-slate-800 dark:text-white tracking-tight">{totalSpent.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h3><p className="text-xs text-slate-400 dark:text-slate-500 mt-2">No período selecionado</p></div></div>
                  <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow relative overflow-hidden group flex flex-col justify-between"><div className="flex justify-between items-start mb-4"><div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl"><TrendingUp className="w-6 h-6 text-amber-600 dark:text-amber-400" /></div></div><div><p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide">Ticket Médio</p><h3 className="text-4xl font-bold text-slate-800 dark:text-white tracking-tight">{avgCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h3><p className="text-xs text-slate-400 dark:text-slate-500 mt-2">Por manutenção realizada</p></div></div>
             </div>
             
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none h-[400px]"><div className="flex justify-between items-center mb-6"><div><h3 className="text-xl font-bold text-slate-800 dark:text-white">Evolução Financeira</h3><p className="text-sm text-slate-500 dark:text-slate-400">Histórico de gastos mensais.</p></div><div className="bg-indigo-50 dark:bg-indigo-900/30 px-4 py-1.5 rounded-full text-sm font-bold text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800 flex items-center gap-2"><Calendar size={14} />{selectedYear}</div></div><div className="w-full h-[280px]"><ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}><AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}><defs><linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/><stop offset="95%" stopColor="#6366f1" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#334155' : '#e2e8f0'} /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: isDarkMode ? '#94a3b8' : '#94a3b8', fontWeight: 600}} dy={15} /><YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: isDarkMode ? '#94a3b8' : '#94a3b8', fontWeight: 600}} tickFormatter={(value) => `R$${value/1000}k`} dx={-10} /><Tooltip content={<CustomTooltip type="currency" />} cursor={{ stroke: '#6366f1', strokeWidth: 1, strokeDasharray: '4 4' }} /><Area type="monotone" dataKey="valor" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorValor)" name="Valor Gasto" activeDot={{ r: 6, strokeWidth: 0, fill: '#4f46e5' }} /></AreaChart></ResponsiveContainer></div></div>
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none h-[400px]"><div className="flex justify-between items-center mb-6"><div><h3 className="text-xl font-bold text-slate-800 dark:text-white">Gastos por Categoria</h3><p className="text-sm text-slate-500 dark:text-slate-400">Onde os recursos estão sendo alocados.</p></div></div><div className="w-full h-[280px]"><ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}><BarChart data={categoryData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke={isDarkMode ? '#334155' : '#f0f0f0'} /><XAxis type="number" hide /><YAxis dataKey="name" type="category" width={100} tick={{fontSize: 12, fill: isDarkMode ? '#94a3b8' : '#64748b', fontWeight: 600}} /><Tooltip content={<CustomTooltip type="currency" />} cursor={{fill: isDarkMode ? '#1e293b' : '#f8fafc'}} /><Bar dataKey="value" fill="#ec4899" radius={[0, 4, 4, 0]} barSize={32} name="Valor">{categoryData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS_TYPE[index % COLORS_TYPE.length]} />))}</Bar></BarChart></ResponsiveContainer></div></div>
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none h-[400px]">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 className="text-xl font-bold text-slate-800 dark:text-white">Evolução Financeira</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Histórico de gastos mensais.</p>
+                    </div>
+                    <div className="bg-indigo-50 dark:bg-indigo-900/30 px-4 py-1.5 rounded-full text-sm font-bold text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800 flex items-center gap-2">
+                        <Calendar size={14} />{selectedYear}
+                    </div>
+                </div>
+                <div className="w-full h-[280px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
+                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#334155' : '#e2e8f0'} />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: isDarkMode ? '#94a3b8' : '#94a3b8', fontWeight: 600}} dy={15} />
+                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: isDarkMode ? '#94a3b8' : '#94a3b8', fontWeight: 600}} tickFormatter={(value) => `R$${value/1000}k`} dx={-10} />
+                            <Tooltip content={<CustomTooltip type="currency" />} cursor={{ stroke: '#6366f1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                            <Area type="monotone" dataKey="valor" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorValor)" name="Valor Gasto" activeDot={{ r: 6, strokeWidth: 0, fill: '#4f46e5' }} />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+            
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none h-[400px]">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 className="text-xl font-bold text-slate-800 dark:text-white">Gastos por Categoria</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Onde os recursos estão sendo alocados.</p>
+                    </div>
+                </div>
+                <div className="w-full h-[280px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={categoryData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke={isDarkMode ? '#334155' : '#f0f0f0'} />
+                            <XAxis type="number" hide />
+                            <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 12, fill: isDarkMode ? '#94a3b8' : '#64748b', fontWeight: 600}} />
+                            <Tooltip content={<CustomTooltip type="currency" />} cursor={{fill: isDarkMode ? '#1e293b' : '#f8fafc'}} />
+                            <Bar dataKey="value" fill="#ec4899" radius={[0, 4, 4, 0]} barSize={32} name="Valor">
+                                {categoryData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS_TYPE[index % COLORS_TYPE.length]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
         </div>
       )}
 
-      {/* --- CONTENT: CLOSED OS TABLE --- */}
+      {/* ... (Closed OS Table and Financial Records Table remain the same structurally) ... */}
       {activeTab === 'closed_os' && (
-        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm relative animate-in slide-in-from-bottom-4 duration-500">
-            {/* Enhanced Toolbar */}
-            {/* ... (Same filter toolbar) ... */}
+        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm relative animate-in slide-in-from-bottom-4 duration-500 overflow-hidden">
+            {/* Toolbar */}
             <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col gap-6">
                 <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
                     <div>
                         <h3 className="text-xl font-bold text-slate-800 dark:text-white">Ordens de Serviços Concluídas</h3>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Acervo completo de manutenções finalizadas.</p>
                     </div>
-                    {/* Filters... (Same as before) */}
+                    {/* Filters */}
                     <div className="flex flex-col sm:flex-row gap-2">
                         {/* Search */}
                         <div className="relative w-full sm:w-64">
@@ -456,15 +506,16 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
                             </div>
                             <input type="text" placeholder="Buscar título ou ID..." className="block w-full pl-9 pr-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl leading-5 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 ease-in-out text-xs font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                         </div>
-                        <FilterDropdown label={tableYear.toString()} isOpen={showTableYearDrop} setIsOpen={setShowTableYearDrop} icon={Calendar} compact><div className="flex flex-col p-1">{YEARS.map(year => (<button key={year} onClick={() => { setTableYear(year); setShowTableYearDrop(false); }} className={`px-4 py-2 text-left rounded-xl text-sm font-semibold transition-colors ${tableYear === year ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{year}</button>))}</div></FilterDropdown>
-                        <FilterDropdown label={tableUnits.length === 0 ? "Todas Sedes" : tableUnits.length === 1 ? tableUnits[0] : "Sedes"} count={tableUnits.length > 0 ? tableUnits.length : undefined} isOpen={showTableUnitDrop} setIsOpen={setShowTableUnitDrop} icon={Filter} compact><div className="flex flex-col"><div className="p-2 border-b border-slate-50 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 z-10"><span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider pl-2">Filtrar</span>{tableUnits.length > 0 && (<button onClick={clearTableUnits} className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 font-medium px-2">Limpar</button>)}</div><div className="p-2 space-y-1">{Object.values(Unit).map((u) => {const isSelected = tableUnits.includes(u); return (<button key={u} onClick={() => toggleTableUnit(u)} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all group ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium'}`}><span>{u}</span>{isSelected && <Check size={14} className="text-indigo-600 dark:text-indigo-400" />}</button>)})}</div></div></FilterDropdown>
+                        <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                            <FilterDropdown label={tableYear.toString()} isOpen={showTableYearDrop} setIsOpen={setShowTableYearDrop} icon={Calendar} compact><div className="flex flex-col p-1">{YEARS.map(year => (<button key={year} onClick={() => { setTableYear(year); setShowTableYearDrop(false); }} className={`px-4 py-2 text-left rounded-xl text-sm font-semibold transition-colors ${tableYear === year ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{year}</button>))}</div></FilterDropdown>
+                            <FilterDropdown label={tableUnits.length === 0 ? "Todas Sedes" : tableUnits.length === 1 ? tableUnits[0] : "Sedes"} count={tableUnits.length > 0 ? tableUnits.length : undefined} isOpen={showTableUnitDrop} setIsOpen={setShowTableUnitDrop} icon={Filter} compact><div className="flex flex-col"><div className="p-2 border-b border-slate-50 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 z-10"><span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider pl-2">Filtrar</span>{tableUnits.length > 0 && (<button onClick={clearTableUnits} className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 font-medium px-2">Limpar</button>)}</div><div className="p-2 space-y-1">{Object.values(Unit).map((u) => {const isSelected = tableUnits.includes(u); return (<button key={u} onClick={() => toggleTableUnit(u)} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all group ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium'}`}><span>{u}</span>{isSelected && <Check size={14} className="text-indigo-600 dark:text-indigo-400" />}</button>)})}</div></div></FilterDropdown>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <div className="overflow-x-auto p-4 rounded-b-3xl">
                 <table className="w-full text-left border-collapse">
-                    {/* ... (Table unchanged) ... */}
                     <thead className="bg-slate-50/50 dark:bg-slate-700/50"><tr><th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider rounded-l-xl select-none">OS ID</th><SortableHeader label="Detalhes" sortKey="title" /><SortableHeader label="Unidade" sortKey="unit" /><SortableHeader label="Datas" sortKey="date" /><SortableHeader label="Custo Final" sortKey="cost" align="right" className="rounded-r-xl" /></tr></thead>
                     <tbody className="divide-y divide-slate-50 dark:divide-slate-700">
                         {archivedOrders.map(os => {
@@ -487,10 +538,10 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
         </div>
       )}
 
-      {/* --- CONTENT: FINANCIAL RECORDS (FROZEN EXPENSES) --- */}
+      {/* --- CONTENT: FINANCIAL RECORDS --- */}
       {activeTab === 'financial_records' && (
-        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm relative animate-in slide-in-from-bottom-4 duration-500">
-            {/* Toolbar */}
+        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm relative animate-in slide-in-from-bottom-4 duration-500 overflow-hidden">
+            {/* Toolbar (Same structure as Closed OS) */}
             <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col gap-6">
                 <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
                     <div>
@@ -500,24 +551,23 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
                         </h3>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Registros consolidados de ordens finalizadas (Somente Leitura).</p>
                     </div>
-                    
-                    {/* Action Buttons & Filters */}
-                    <div className="flex flex-wrap gap-2 items-center">
+                    <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
                         {/* CONDITIONAL PAYMENT SCHEDULE BUTTON */}
                         {selectedExpenseIds.length > 0 && !isMobile && (
                             <button onClick={() => setIsPaymentScheduleOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/30 transition-all active:scale-95 animate-in slide-in-from-right-4 fade-in">
                                 <FileOutput className="w-4 h-4" /> Gerar Ordens de Pagamento ({selectedExpenseIds.length})
                             </button>
                         )}
-
                         <div className="relative w-full sm:w-auto">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <Search className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                             </div>
                             <input type="text" placeholder="Buscar..." className="block w-full sm:w-64 pl-9 pr-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl leading-5 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 ease-in-out text-xs font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                         </div>
-                        <FilterDropdown label={tableYear.toString()} isOpen={showTableYearDrop} setIsOpen={setShowTableYearDrop} icon={Calendar} compact><div className="flex flex-col p-1">{YEARS.map(year => (<button key={year} onClick={() => { setTableYear(year); setShowTableYearDrop(false); }} className={`px-4 py-2 text-left rounded-xl text-sm font-semibold transition-colors ${tableYear === year ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{year}</button>))}</div></FilterDropdown>
-                        <FilterDropdown label={tableUnits.length === 0 ? "Todas Sedes" : tableUnits.length === 1 ? tableUnits[0] : "Sedes"} count={tableUnits.length > 0 ? tableUnits.length : undefined} isOpen={showTableUnitDrop} setIsOpen={setShowTableUnitDrop} icon={Filter} compact><div className="flex flex-col"><div className="p-2 border-b border-slate-50 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 z-10"><span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider pl-2">Filtrar</span>{tableUnits.length > 0 && (<button onClick={clearTableUnits} className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 font-medium px-2">Limpar</button>)}</div><div className="p-2 space-y-1">{Object.values(Unit).map((u) => {const isSelected = tableUnits.includes(u); return (<button key={u} onClick={() => toggleTableUnit(u)} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all group ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium'}`}><span>{u}</span>{isSelected && <Check size={14} className="text-indigo-600 dark:text-indigo-400" />}</button>)})}</div></div></FilterDropdown>
+                        <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                            <FilterDropdown label={tableYear.toString()} isOpen={showTableYearDrop} setIsOpen={setShowTableYearDrop} icon={Calendar} compact><div className="flex flex-col p-1">{YEARS.map(year => (<button key={year} onClick={() => { setTableYear(year); setShowTableYearDrop(false); }} className={`px-4 py-2 text-left rounded-xl text-sm font-semibold transition-colors ${tableYear === year ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{year}</button>))}</div></FilterDropdown>
+                            <FilterDropdown label={tableUnits.length === 0 ? "Todas Sedes" : tableUnits.length === 1 ? tableUnits[0] : "Sedes"} count={tableUnits.length > 0 ? tableUnits.length : undefined} isOpen={showTableUnitDrop} setIsOpen={setShowTableUnitDrop} icon={Filter} compact><div className="flex flex-col"><div className="p-2 border-b border-slate-50 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 z-10"><span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider pl-2">Filtrar</span>{tableUnits.length > 0 && (<button onClick={clearTableUnits} className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 font-medium px-2">Limpar</button>)}</div><div className="p-2 space-y-1">{Object.values(Unit).map((u) => {const isSelected = tableUnits.includes(u); return (<button key={u} onClick={() => toggleTableUnit(u)} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all group ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium'}`}><span>{u}</span>{isSelected && <Check size={14} className="text-indigo-600 dark:text-indigo-400" />}</button>)})}</div></div></FilterDropdown>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -526,7 +576,6 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-50/50 dark:bg-slate-700/50">
                         <tr>
-                            {/* Checkbox Column - Hide on mobile if batch actions are desktop only */}
                             <th className="px-6 py-4 w-12 rounded-l-xl">
                                 {!isMobile && (
                                     <input type="checkbox" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" checked={selectedExpenseIds.length > 0 && selectedExpenseIds.length === archivedExpenses.length} onChange={() => toggleSelectAll(archivedExpenses)} />
@@ -566,18 +615,6 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
                 </table>
             </div>
         </div>
-      )}
-
-      {/* Payment Schedule Modal - Pass only selected IDs logic */}
-      {onUpdateExpenses && currentUser && (
-          <PaymentScheduleModal 
-            isOpen={isPaymentScheduleOpen}
-            onClose={() => setIsPaymentScheduleOpen(false)}
-            expenses={expenses.filter(e => selectedExpenseIds.includes(e.id))} // Pass ONLY selected items
-            orders={orders}
-            currentUser={currentUser}
-            onUpdateExpenses={onUpdateExpenses}
-          />
       )}
 
       {/* Supplier List Modal */}
@@ -663,6 +700,18 @@ export const Reports: React.FC<ReportsProps> = ({ orders, expenses, suppliers, i
                 </div>
             </div>
         </div>
+      )}
+
+      {/* Payment Schedule Modal */}
+      {onUpdateExpenses && currentUser && (
+          <PaymentScheduleModal 
+            isOpen={isPaymentScheduleOpen}
+            onClose={() => setIsPaymentScheduleOpen(false)}
+            expenses={expenses.filter(e => selectedExpenseIds.includes(e.id))}
+            orders={orders}
+            currentUser={currentUser}
+            onUpdateExpenses={onUpdateExpenses}
+          />
       )}
 
     </div>

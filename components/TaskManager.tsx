@@ -247,7 +247,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
 
                         <div className="grid grid-cols-2 gap-4">
                              <div>
-                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase block mb-1">Prazo</label>
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase block mb-1">Data</label>
                                 <div className="relative">
                                     <input 
                                         type="date" 

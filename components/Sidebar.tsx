@@ -1,9 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { LayoutDashboard, Trello, DollarSign, Settings, LogOut, FileText, ChevronLeft, ChevronRight, CheckSquare, Bell, CheckCircle2, AlertCircle, FileCheck, Moon, Sun, Box } from 'lucide-react';
+import { LayoutDashboard, Trello, DollarSign, Settings, LogOut, FileText, ChevronLeft, ChevronRight, CheckSquare, Bell, CheckCircle2, AlertCircle, FileCheck, Moon, Sun, Box, Calendar as CalendarIcon, Pencil } from 'lucide-react';
 import { User, Notification, NotificationType } from '../types';
 
-type View = 'dashboard' | 'kanban' | 'finance' | 'reports' | 'tasks' | 'settings' | 'assets';
+type View = 'dashboard' | 'kanban' | 'finance' | 'reports' | 'tasks' | 'settings' | 'assets' | 'calendar';
 
 interface SidebarProps {
   currentView: View;
@@ -17,6 +17,7 @@ interface SidebarProps {
   isMobile?: boolean;
   theme?: 'light' | 'dark';
   toggleTheme?: () => void;
+  onEditProfile?: () => void; // New Prop
 }
 
 const SidebarBtn = ({ view, icon: Icon, label, currentView, setCurrentView, isCollapsed }: { view: View, icon: any, label: string, currentView: View, setCurrentView: (v: View) => void, isCollapsed: boolean }) => {
@@ -55,7 +56,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onMarkAsRead,
     isMobile = false,
     theme,
-    toggleTheme
+    toggleTheme,
+    onEditProfile
 }) => {
   // ... (Notification logic unchanged) ...
   const [showNotifications, setShowNotifications] = useState(false);
@@ -106,14 +108,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
     {isMobile && !isCollapsed && (
         <div 
-            className="fixed inset-0 bg-black/50 z-20 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/50 z-[55] backdrop-blur-sm"
             onClick={() => setIsCollapsed(true)}
         ></div>
     )}
 
     <aside
       className={`
-            flex flex-col shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)] z-30 
+            flex flex-col shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)] z-[60] 
             border-r border-slate-200/60 dark:border-slate-800/60
             bg-white dark:bg-slate-900
             ${isMobile ? 'fixed top-0 bottom-0 left-0 h-full' : 'relative'}
@@ -208,6 +210,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex-1 px-4 overflow-y-auto custom-scrollbar flex flex-col gap-1.5 py-4">
         {(!isCollapsed || isMobile) && <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-2 pl-3">Menu Principal</p>}
         <SidebarBtn view="dashboard" icon={LayoutDashboard} label="Dashboard" currentView={currentView} setCurrentView={setCurrentView} isCollapsed={isCollapsed && !isMobile} />
+        <SidebarBtn view="calendar" icon={CalendarIcon} label="Calendário" currentView={currentView} setCurrentView={setCurrentView} isCollapsed={isCollapsed && !isMobile} />
         <SidebarBtn view="kanban" icon={Trello} label="Quadro de Ordens" currentView={currentView} setCurrentView={setCurrentView} isCollapsed={isCollapsed && !isMobile} />
         <SidebarBtn view="tasks" icon={CheckSquare} label="Minhas Tarefas" currentView={currentView} setCurrentView={setCurrentView} isCollapsed={isCollapsed && !isMobile} />
         <SidebarBtn view="finance" icon={DollarSign} label="Finanças" currentView={currentView} setCurrentView={setCurrentView} isCollapsed={isCollapsed && !isMobile} />
@@ -304,12 +307,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {(!isCollapsed || isMobile) && <div className="h-px bg-slate-200 dark:bg-slate-700 my-2 mx-2"></div>}
 
           <div className={`flex items-center gap-3 p-2 rounded-xl transition-all duration-300 ${!isCollapsed || isMobile ? 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm' : 'justify-center mt-2'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden ${!currentUser.avatarUrl ? currentUser.color : 'bg-gray-200 dark:bg-slate-700'} text-white shadow-md ring-2 ring-white dark:ring-slate-700`}>
-              {currentUser.avatarUrl ? (
-                  <img src={currentUser.avatarUrl} alt={currentUser.initials} className="w-full h-full object-cover" />
-              ) : (
-                  currentUser.initials
-              )}
+            <div 
+                className="relative group cursor-pointer"
+                onClick={onEditProfile}
+            >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden ${!currentUser.avatarUrl ? currentUser.color : 'bg-gray-200 dark:bg-slate-700'} text-white shadow-md ring-2 ring-white dark:ring-slate-700`}>
+                {currentUser.avatarUrl ? (
+                    <img src={currentUser.avatarUrl} alt={currentUser.initials} className="w-full h-full object-cover" />
+                ) : (
+                    currentUser.initials
+                )}
+                </div>
+                {/* Hover Overlay with Pencil */}
+                <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Pencil size={12} className="text-white" />
+                </div>
             </div>
 
             {(!isCollapsed || isMobile) && (

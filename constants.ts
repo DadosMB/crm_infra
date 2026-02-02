@@ -1,5 +1,5 @@
 
-import { Expense, ExpenseCategory, OSPriority, OSStatus, OSType, PaymentMethod, ServiceOrder, Unit, User, PersonalTask, Notification, Supplier, Asset, AssetStatus, AssetCategory } from './types';
+import { Expense, ExpenseCategory, OSPriority, OSStatus, OSType, PaymentMethod, ServiceOrder, Unit, User, PersonalTask, Notification, Supplier, Asset, AssetStatus, AssetCategory, MaintenanceRecord } from './types';
 
 export const USERS: User[] = [
   {
@@ -98,7 +98,7 @@ export const INITIAL_ASSETS: Asset[] = [
     name: 'Fritadeira Industrial Gás',
     unit: Unit.POKE,
     category: AssetCategory.COZINHA,
-    status: AssetStatus.EM_MANUTENCAO,
+    status: AssetStatus.EM_MANUTENCAO, // Está fora
     brand: 'Vulcan',
     model: 'LG300',
     value: 4500.00,
@@ -126,6 +126,19 @@ export const INITIAL_ASSETS: Asset[] = [
     invoiceInfo: {},
     description: 'Quebrou o pistão, custo de reparo inviável.'
   }
+];
+
+export const INITIAL_MAINTENANCE_RECORDS: MaintenanceRecord[] = [
+    {
+        id: 'mr-001',
+        assetId: 'ast-003', // Fritadeira Vulcan
+        providerName: 'TEC SERVICES',
+        contactInfo: '(85) 98888-7777',
+        dateOut: '2026-05-25T09:00:00.000Z',
+        dateReturnForecast: '2026-05-28T17:00:00.000Z',
+        description: 'Substituição dos cabos de alimentação que derreteram.',
+        active: true
+    }
 ];
 
 // ... (Rest of the file remains same: INITIAL_NOTIFICATIONS, INITIAL_TASKS, INITIAL_ORDERS, INITIAL_EXPENSES) ...

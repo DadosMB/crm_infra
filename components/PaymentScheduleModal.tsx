@@ -275,7 +275,7 @@ export const PaymentScheduleModal: React.FC<PaymentScheduleModalProps> = ({
                                 <td className="px-4 py-2 align-top text-right">
                                     <input 
                                         type="number" 
-                                        className={`${inputClass} text-right font-bold text-emerald-600 text-base`}
+                                        className={`${inputClass} text-right font-bold text-emerald-600 dark:text-emerald-400 text-base [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                                         value={item.value}
                                         onChange={(e) => handleItemChange(item.id, 'value', Number(e.target.value))}
                                     />
