@@ -177,21 +177,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ orders, expenses, isDarkMo
         <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-l-4 border-l-blue-500 border-y-slate-100 dark:border-y-slate-700 border-r-slate-100 dark:border-r-slate-700 flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">OS Abertas</p>
-            <p className="text-3xl font-bold text-gray-800 dark:text-white">{stats.totalOpen}</p>
+            <p className="text-3xl font-bold text-gray-800 dark:text-white">{stats.totalOpen || 0}</p>
           </div>
           <AlertCircle className="w-10 h-10 text-blue-100 dark:text-blue-900 bg-blue-500 rounded-lg p-2" />
         </div>
         <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-l-4 border-l-purple-500 border-y-slate-100 dark:border-y-slate-700 border-r-slate-100 dark:border-r-slate-700 flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Em Andamento</p>
-            <p className="text-3xl font-bold text-gray-800 dark:text-white">{stats.totalInProgress}</p>
+            <p className="text-3xl font-bold text-gray-800 dark:text-white">{stats.totalInProgress || 0}</p>
           </div>
           <Clock className="w-10 h-10 text-purple-100 dark:text-purple-900 bg-purple-500 rounded-lg p-2" />
         </div>
         <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-l-4 border-l-green-500 border-y-slate-100 dark:border-y-slate-700 border-r-slate-100 dark:border-r-slate-700 flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Concluídas (Mês)</p>
-            <p className="text-3xl font-bold text-gray-800 dark:text-white">{stats.totalClosed}</p>
+            <p className="text-3xl font-bold text-gray-800 dark:text-white">{stats.totalClosed || 0}</p>
           </div>
           <CheckCircle className="w-10 h-10 text-green-100 dark:text-green-900 bg-green-500 rounded-lg p-2" />
         </div>

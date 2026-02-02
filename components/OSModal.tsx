@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ServiceOrder, OSStatus, OSPriority, Unit, OSType, HistoryLog, Expense, User, ExpenseCategory, PaymentMethod, Supplier } from '../types';
-import { USERS } from '../constants';
 import { X, Save, MessageSquare, Calendar, ArrowRightLeft, Plus, DollarSign, Trash2, AlertOctagon, Send, Clock, MapPin, Wrench, Paperclip, User as UserIcon, Lock, Search, Check } from 'lucide-react';
 
 interface OSModalProps {
@@ -10,6 +9,7 @@ interface OSModalProps {
   order: ServiceOrder | null;
   onSave: (order: ServiceOrder) => void;
   expenses: Expense[];
+  users: User[]; // Added users prop
   onAddExpense: (expense: Expense) => void;
   onDeleteExpense: (expenseId: string) => void;
   currentUser: User;
@@ -26,7 +26,7 @@ const STATUS_STYLES: Record<OSStatus, string> = {
     [OSStatus.CANCELADA]: 'bg-red-100 text-red-700 border-red-200 shadow-[0_0_10px_rgba(239,68,68,0.3)]',
 };
 
-export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave, expenses, onAddExpense, onDeleteExpense, currentUser, suppliers = [], onAddSupplier, isMobile = false }) => {
+export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave, expenses, users, onAddExpense, onDeleteExpense, currentUser, suppliers = [], onAddSupplier, isMobile = false }) => {
   const [formData, setFormData] = useState<Partial<ServiceOrder>>({});
   const [activeTab, setActiveTab] = useState<'details' | 'history' | 'finance'>('details');
   
@@ -108,11 +108,11 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
 
   const linkedExpenses = expenses.filter(e => e.linkedOSId === formData.id);
   const totalCost = linkedExpenses.reduce((acc, cur) => acc + cur.value, 0);
-  const owner = USERS.find(u => u.id === formData.ownerId);
+  const owner = users.find(u => u.id === formData.ownerId);
   const isEditing = !!order; 
   const isClosedStatus = formData.status === OSStatus.CONCLUIDA || formData.status === OSStatus.CANCELADA;
   
-  // Read-Only if Archived OR Status Closed OR Mobile OR (Strictly if user is not owner/admin? No, user should see details but maybe not edit if not owner. Prompt says user only SEES their own, so if they see it, they own it).
+  // Read-Only if Archived OR Status Closed OR Mobile
   const isReadOnly = formData.archived || (isEditing && isClosedStatus) || isMobile;
 
   // Filter Suppliers
@@ -199,7 +199,7 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
          return;
      }
 
-     const newOwner = USERS.find(u => u.id === selectedDelegate);
+     const newOwner = users.find(u => u.id === selectedDelegate);
      if(!newOwner) return;
 
      if (order) {
@@ -423,7 +423,7 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
                     </p>
                     <select className={inputClass + " max-w-xs mb-4"} value={selectedDelegate} onChange={(e) => setSelectedDelegate(e.target.value)}>
                         <option value="">Selecione...</option>
-                        {USERS.filter(u => u.id !== formData.ownerId).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                        {users.filter(u => u.id !== formData.ownerId).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                     </select>
                     <div className="flex gap-2">
                         <button onClick={() => setIsDelegating(false)} className="px-5 py-2.5 bg-gray-100 dark:bg-slate-700 rounded-xl text-sm font-bold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">Cancelar</button>
@@ -566,7 +566,7 @@ export const OSModal: React.FC<OSModalProps> = ({ isOpen, onClose, order, onSave
                                 <div className="space-y-3">
                                     {group.logs.map((log) => {
                                         const isMe = log.userId === currentUser.id;
-                                        const logUser = USERS.find(u => u.id === log.userId);
+                                        const logUser = users.find(u => u.id === log.userId);
                                         return (
                                             <div key={log.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
                                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-sm border-2 border-white dark:border-slate-800 ${logUser?.color || 'bg-gray-400'}`}>

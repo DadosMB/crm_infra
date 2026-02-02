@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { User } from '../types';
-import { Lock, ArrowLeft, ShieldCheck, ChevronRight, BarChart3 } from 'lucide-react';
+import { Lock, ArrowLeft, ShieldCheck, ChevronRight, BarChart3, UserPlus, Mail } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { PerformanceToggle } from './PerformanceToggle';
 
@@ -26,6 +26,12 @@ export const Login: React.FC<LoginProps> = ({
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
+  // --- First Access State (When no users exist) ---
+  const [isFirstAccess, setIsFirstAccess] = useState(users.length === 0);
+  const [newAdminName, setNewAdminName] = useState('');
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPass, setNewAdminPass] = useState('');
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
@@ -36,6 +42,31 @@ export const Login: React.FC<LoginProps> = ({
     } else {
       setError('Senha incorreta.');
     }
+  };
+
+  const handleCreateFirstAdmin = (e: React.FormEvent) => {
+      e.preventDefault();
+      if(!newAdminName || !newAdminEmail || !newAdminPass) {
+          setError('Preencha todos os campos.');
+          return;
+      }
+
+      const newAdmin: User = {
+          id: `u-${Date.now()}`,
+          name: newAdminName,
+          email: newAdminEmail,
+          password: newAdminPass,
+          role: 'Administrador',
+          initials: newAdminName.substring(0, 2).toUpperCase(),
+          color: 'bg-indigo-600',
+          isAdmin: true
+      };
+      
+      // In a real app, this would hit the backend API.
+      // Here we just pass it up to App.tsx via onLogin (simulating immediate login)
+      // Note: App.tsx needs to handle adding this user to state if it wants persistence in this session.
+      // Ideally, Login shouldn't mutate Users, but for "First Access" simulation, we trigger login directly.
+      onLogin(newAdmin);
   };
 
   const handleGuestLogin = () => {
@@ -109,8 +140,54 @@ export const Login: React.FC<LoginProps> = ({
 
             <div className="p-8 md:p-12 min-h-[400px] flex flex-col items-center justify-center">
                 
+                {/* VIEW 0: FIRST ACCESS (EMPTY DB) */}
+                {isFirstAccess && (
+                    <div className="w-full max-w-xs flex flex-col items-center animate-in fade-in duration-500">
+                        <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mb-4 text-indigo-600 dark:text-indigo-400">
+                            <UserPlus size={32} />
+                        </div>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Primeiro Acesso</h2>
+                        <p className="text-sm text-center text-slate-500 dark:text-slate-400 mb-6">
+                            Nenhum usuário encontrado. Crie uma conta de Administrador para iniciar.
+                        </p>
+
+                        <form onSubmit={handleCreateFirstAdmin} className="w-full space-y-4">
+                            <input 
+                                type="text"
+                                placeholder="Nome Completo"
+                                className="block w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={newAdminName}
+                                onChange={e => setNewAdminName(e.target.value)}
+                                required
+                            />
+                            <input 
+                                type="email"
+                                placeholder="Email"
+                                className="block w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={newAdminEmail}
+                                onChange={e => setNewAdminEmail(e.target.value)}
+                                required
+                            />
+                            <input 
+                                type="password"
+                                placeholder="Criar Senha"
+                                className="block w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={newAdminPass}
+                                onChange={e => setNewAdminPass(e.target.value)}
+                                required
+                            />
+                            
+                            {error && <div className="text-red-500 text-xs text-center">{error}</div>}
+
+                            <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-all">
+                                Criar Admin e Entrar
+                            </button>
+                        </form>
+                    </div>
+                )}
+
                 {/* VIEW 1: PROFILE SELECTION */}
-                {!selectedUser && (
+                {!isFirstAccess && !selectedUser && (
                 <div className="w-full flex flex-col items-center animate-in fade-in duration-500">
                     <h2 className="text-2xl font-light text-slate-800 dark:text-white mb-8">Quem está acessando?</h2>
                     

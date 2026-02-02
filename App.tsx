@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { LayoutDashboard, Trello, DollarSign, Settings, PieChart, CheckSquare, Users as UsersIcon, LogOut, Briefcase, Store, Menu, Bell, AlertCircle, CheckCircle2, Layers, Calendar as CalendarIcon, Box } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { KanbanBoard } from './components/KanbanBoard';
@@ -19,14 +19,14 @@ import { AssetModal } from './components/AssetModal';
 import { AssetTransferModal } from './components/AssetTransferModal';
 import { AssetMaintenanceModal } from './components/AssetMaintenanceModal';
 import { CategoryManagementModal } from './components/CategoryManagementModal';
-import { ServiceOrder, Expense, OSStatus, User, PersonalTask, Notification, Supplier, NotificationType, Asset, Unit, MaintenanceRecord, AssetStatus, AssetCategory } from './types';
-import { INITIAL_ORDERS, INITIAL_EXPENSES, INITIAL_TASKS, USERS, INITIAL_NOTIFICATIONS, INITIAL_SUPPLIERS, INITIAL_ASSETS, INITIAL_MAINTENANCE_RECORDS } from './constants';
+import { ServiceOrder, Expense, OSStatus, User, PersonalTask, Notification, Supplier, Asset, Unit, MaintenanceRecord, AssetStatus, AssetCategory } from './types';
+import { MOCK_ASSETS, MOCK_EXPENSES, MOCK_MAINTENANCE_RECORDS, MOCK_NOTIFICATIONS, MOCK_ORDERS, MOCK_SUPPLIERS, MOCK_TASKS, MOCK_USERS } from './mockData';
 
 type View = 'dashboard' | 'kanban' | 'finance' | 'reports' | 'tasks' | 'settings' | 'assets' | 'calendar';
 type Theme = 'light' | 'dark';
 
 const App: React.FC = () => {
-  // Auth State - RESET: Always start null (Login screen)
+  // Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   // App State
@@ -52,22 +52,60 @@ const App: React.FC = () => {
     const handleResize = () => {
         const mobile = window.innerWidth <= 768;
         setIsMobile(mobile);
-        if (mobile) setIsSidebarCollapsed(true); // Auto collapse on mobile
+        if (mobile) setIsSidebarCollapsed(true);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Data State - Source of Truth
-  const [orders, setOrders] = useState<ServiceOrder[]>(INITIAL_ORDERS);
-  const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
-  const [tasks, setTasks] = useState<PersonalTask[]>(INITIAL_TASKS);
-  const [users, setUsers] = useState<User[]>(USERS);
-  const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
-  const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
-  const [assets, setAssets] = useState<Asset[]>(INITIAL_ASSETS);
-  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>(INITIAL_MAINTENANCE_RECORDS);
+  // Data State - Initialize Empty (Clean State)
+  const [orders, setOrders] = useState<ServiceOrder[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [tasks, setTasks] = useState<PersonalTask[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
   const [assetCategories, setAssetCategories] = useState<string[]>(Object.values(AssetCategory));
+
+  // --- DATA LOADING LOGIC (Mocks vs Prod) ---
+  useEffect(() => {
+      // Logic:
+      // 1. If PROD, try to load from LocalStorage to allow "First Access" persistence demo.
+      // 2. If DEV, load Mocks directly (refresh resets to mocks).
+      
+      // Safe check for env
+      const isDev = (import.meta as any).env && (import.meta as any).env.DEV;
+
+      if (isDev) {
+          console.log("🛠️ Ambiente de Desenvolvimento: Carregando Mocks...");
+          setOrders(MOCK_ORDERS);
+          setExpenses(MOCK_EXPENSES);
+          setTasks(MOCK_TASKS);
+          setUsers(MOCK_USERS);
+          setSuppliers(MOCK_SUPPLIERS);
+          setNotifications(MOCK_NOTIFICATIONS);
+          setAssets(MOCK_ASSETS);
+          setMaintenanceRecords(MOCK_MAINTENANCE_RECORDS);
+      } else {
+          console.log("🚀 Ambiente de Produção: Iniciando Limpo (Verificando LocalStorage)...");
+          // Simple persistence for demo purposes in Prod without Backend
+          const savedUsers = localStorage.getItem('crm_users');
+          if (savedUsers) setUsers(JSON.parse(savedUsers));
+          
+          // Load other entities if needed, for now sticking to Users to allow Login
+      }
+  }, []);
+
+  // Sync Users to LocalStorage in Prod (to allow the created Admin to persist)
+  useEffect(() => {
+      const isDev = (import.meta as any).env && (import.meta as any).env.DEV;
+      if (!isDev && users.length > 0) {
+          localStorage.setItem('crm_users', JSON.stringify(users));
+      }
+  }, [users]);
+
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -118,16 +156,12 @@ const App: React.FC = () => {
   }, [theme]);
 
   useEffect(() => {
-      // Mobile: Always Turbo Mode
-      // Desktop: Follow User Preference
       const isTurbo = isMobile || performanceMode;
-
       if (isTurbo) {
           document.body.classList.add('performance-mode');
       } else {
           document.body.classList.remove('performance-mode');
       }
-      
       if (!isMobile) {
           localStorage.setItem('performanceMode', String(performanceMode));
       }
@@ -143,6 +177,10 @@ const App: React.FC = () => {
 
   // Handlers
   const handleLogin = (user: User) => {
+      // If it's a new admin from "First Access", add to state
+      if (!users.find(u => u.id === user.id) && !user.isGuest) {
+          setUsers([user]);
+      }
       setCurrentUser(user);
       if (user.isGuest) {
           setCurrentView('reports');
@@ -153,7 +191,12 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
       setCurrentUser(null);
-      setNotifications(INITIAL_NOTIFICATIONS); // Reset notifications on logout
+      // In Dev, reset notifications to mock. In Prod, maybe clear?
+      if ((import.meta as any).env && (import.meta as any).env.DEV) {
+          setNotifications(MOCK_NOTIFICATIONS);
+      } else {
+          setNotifications([]);
+      }
   };
 
   // --- Notification Logic ---
@@ -289,7 +332,6 @@ const App: React.FC = () => {
         alert("Funcionalidade disponível apenas no desktop.");
         return;
     }
-    // Security: Non-Admins cannot delete expenses
     if (!currentUser?.isAdmin) {
         alert("Apenas administradores podem excluir despesas.");
         return;
@@ -298,7 +340,7 @@ const App: React.FC = () => {
   };
   
   const handleOpenOSFromFinance = (id: string) => {
-      const order = visibleOrders.find(o => o.id === id); // Check against visible
+      const order = visibleOrders.find(o => o.id === id); 
       if (order) {
           handleEditOS(order);
       } else {
@@ -329,16 +371,11 @@ const App: React.FC = () => {
       setTasks(prev => prev.filter(t => t.id !== taskId));
   };
 
-  // Quick Task from Calendar
   const handleQuickTaskFromCalendar = (date: string) => {
-      // Logic to switch view to Tasks and open modal (Simulated for now by adding directly or guiding user)
-      // For simplicity, we will just add a default task for that date or switch view
       setCurrentView('tasks');
-      // In a real app, we would pass the date to the TaskManager to open the modal pre-filled
-      // Here we just switch view to keep it simple as requested "adapt... check loose ends"
   };
 
-  // User Management Handlers (Admin Only)
+  // User Management
   const handleUpdateUser = (updatedUser: User) => {
       if (isMobile) return;
       setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
@@ -353,7 +390,7 @@ const App: React.FC = () => {
       setUsers(prev => prev.filter(u => u.id !== userId));
   };
 
-  // Supplier Management Handlers (Admin Only)
+  // Supplier Management
   const handleAddSupplier = (supplier: Supplier) => {
       if (isMobile) return;
       if (!currentUser?.isAdmin) {
@@ -408,9 +445,7 @@ const App: React.FC = () => {
 
   const handleRegisterMaintenance = (record: MaintenanceRecord) => {
       if (isMobile) return;
-      // 1. Add Record
       setMaintenanceRecords(prev => [record, ...prev]);
-      // 2. Update Asset Status to EM_MANUTENCAO
       setAssets(prev => prev.map(a => a.id === record.assetId ? { ...a, status: AssetStatus.EM_MANUTENCAO } : a));
   };
 
@@ -419,13 +454,10 @@ const App: React.FC = () => {
       const record = maintenanceRecords.find(r => r.id === recordId);
       if(!record) return;
 
-      // 1. Deactivate Record
       setMaintenanceRecords(prev => prev.map(r => r.id === recordId ? { ...r, active: false, dateReturned: new Date().toISOString() } : r));
-      // 2. Return Asset Status to ATIVO
       setAssets(prev => prev.map(a => a.id === record.assetId ? { ...a, status: AssetStatus.ATIVO } : a));
   };
 
-  // Asset Categories Management
   const handleAddCategory = (cat: string) => {
       setAssetCategories(prev => [...prev, cat]);
   };
@@ -453,11 +485,11 @@ const App: React.FC = () => {
       return (
         <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-950 text-gray-800 dark:text-slate-100 font-sans transition-colors duration-300">
             <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800/60 p-4 px-8 sticky top-0 z-20 flex justify-between items-center h-20 shrink-0">
-                {/* ... Guest Header same ... */}
+                {/* Guest Header */}
             </header>
             <main className="flex-1 overflow-auto p-4 md:p-8 max-w-7xl mx-auto w-full">
                 <Reports 
-                    orders={orders} // Executive sees all
+                    orders={orders} 
                     expenses={expenses} 
                     isDarkMode={theme === 'dark'} 
                     suppliers={suppliers} 
@@ -471,7 +503,6 @@ const App: React.FC = () => {
       );
   }
 
-  // Main App View
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-gray-800 dark:text-slate-100 overflow-hidden font-sans transition-colors duration-300">
       
@@ -487,7 +518,7 @@ const App: React.FC = () => {
         isMobile={isMobile}
         theme={theme}
         toggleTheme={toggleTheme}
-        onEditProfile={() => setIsUserModalOpen(true)} // Added Handler
+        onEditProfile={() => setIsUserModalOpen(true)}
       />
 
       <main className="flex-1 overflow-auto flex flex-col w-full bg-slate-50 dark:bg-slate-950 transition-colors duration-300 relative">
@@ -512,8 +543,6 @@ const App: React.FC = () => {
             
             <div className="flex gap-2 md:gap-4 items-center">
                 {!isMobile && <PerformanceToggle isActive={performanceMode} toggle={togglePerformanceMode} />}
-                
-                {/* Desktop: Theme Toggle here. Mobile: Theme Toggle is in Sidebar */}
                 {!isMobile && <ThemeToggle theme={theme} toggleTheme={toggleTheme} />}
             </div>
         </header>
@@ -532,6 +561,7 @@ const App: React.FC = () => {
             <KanbanBoard 
                 orders={visibleOrders.filter(o => !o.archived)}
                 expenses={visibleExpenses}
+                users={users} // Injected Users
                 onOrderClick={handleEditOS} 
                 onOrderUpdate={handleSaveOS}
                 onNewOrder={handleOpenNewOS}
@@ -543,7 +573,7 @@ const App: React.FC = () => {
               <FinanceTable 
                   expenses={visibleExpenses.filter(e => {
                       const linkedOS = visibleOrders.find(o => o.id === e.linkedOSId);
-                      return !linkedOS?.archived; // Active finance
+                      return !linkedOS?.archived;
                   })} 
                   orders={visibleOrders.filter(o => !o.archived)} 
                   onAddExpense={handleAddExpense} 
@@ -579,10 +609,10 @@ const App: React.FC = () => {
                   onTransferClick={() => setIsTransferModalOpen(true)}
                   onMaintenanceClick={() => setIsMaintenanceModalOpen(true)}
                   onReturnAsset={handleReturnAsset}
-                  onImportAssets={handleBatchAddAssets} // Pass import handler
+                  onImportAssets={handleBatchAddAssets} 
                   currentUser={currentUser}
                   isMobile={isMobile}
-                  categories={assetCategories} // Pass categories
+                  categories={assetCategories}
               />
           )}
 
@@ -685,6 +715,7 @@ const App: React.FC = () => {
         order={selectedOrder} 
         onSave={handleSaveOS}
         expenses={expenses}
+        users={users} // Injected Users
         onAddExpense={handleAddExpense}
         onDeleteExpense={handleDeleteExpense}
         currentUser={currentUser}

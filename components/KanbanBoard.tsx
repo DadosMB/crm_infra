@@ -1,7 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { ServiceOrder, OSStatus, OSPriority, Unit, OSType, Expense } from '../types';
-import { USERS } from '../constants';
+import { ServiceOrder, OSStatus, OSPriority, Unit, OSType, Expense, User } from '../types';
 import { MapPin, Filter, PlusCircle, Wrench, Users, LayoutGrid, List, ChevronRight, Clock, CheckCircle2, Check, CalendarDays, XCircle, FileCheck } from 'lucide-react';
 import { DocumentModal } from './DocumentModal';
 import { getPriorityColor, getStatusBadge, getTypeBadgeStyle, formatCurrency, formatDate } from '../utils';
@@ -10,6 +9,7 @@ import { SortableHeader } from './SortableHeader';
 interface KanbanBoardProps {
   orders: ServiceOrder[];
   expenses: Expense[];
+  users: User[]; // Added users prop
   onOrderClick: (order: ServiceOrder) => void;
   onOrderUpdate: (order: ServiceOrder) => void;
   onNewOrder: () => void;
@@ -88,7 +88,7 @@ const PRIORITY_WEIGHT = {
 
 type SortKey = keyof ServiceOrder | 'ownerName' | 'totalCost';
 
-export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOrderClick, onOrderUpdate, onNewOrder, onArchiveOrder, isMobile = false }) => {
+export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, users, onOrderClick, onOrderUpdate, onNewOrder, onArchiveOrder, isMobile = false }) => {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [draggedOrderId, setDraggedOrderId] = useState<string | null>(null);
@@ -156,8 +156,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
       let bValue: any = b[sortConfig.key as keyof ServiceOrder];
 
       if (sortConfig.key === 'ownerName') {
-        aValue = USERS.find(u => u.id === a.ownerId)?.name || '';
-        bValue = USERS.find(u => u.id === b.ownerId)?.name || '';
+        aValue = users.find(u => u.id === a.ownerId)?.name || '';
+        bValue = users.find(u => u.id === b.ownerId)?.name || '';
       }
       
       if (sortConfig.key === 'priority') {
@@ -185,7 +185,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
       if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [filteredOrders, sortConfig, expenses]);
+  }, [filteredOrders, sortConfig, expenses, users]);
 
   const handleSort = (key: string) => {
     const k = key as SortKey;
@@ -196,8 +196,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
     setSortConfig({ key: k, direction });
   };
 
+  // ... (Drag handlers remain same)
   const handleDragStart = (e: React.DragEvent, orderId: string) => {
-    if (isMobile) return; // Disable Drag on Mobile
+    if (isMobile) return; 
     e.dataTransfer.setData('text/plain', orderId);
     e.dataTransfer.effectAllowed = 'move';
     setDraggedOrderId(orderId);
@@ -289,7 +290,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
         </div>
 
         {/* Filters Container */}
-        {/* ... (Rest of filter code same as previous) ... */}
         <div className="space-y-4 bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
             {/* Unit Filters */}
             <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
@@ -394,7 +394,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
                     </button>
                     
                     <div className="flex -space-x-2 hover:space-x-1 transition-all">
-                        {USERS.map(user => {
+                        {users.map(user => {
                             const isSelected = selectedUsers.includes(user.id);
                             const isAll = selectedUsers.includes('ALL');
                             
@@ -455,7 +455,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
                     <div className="flex-1 overflow-y-auto space-y-3 min-h-[500px] px-2 pb-2 scrollbar-hide">
                     {columnOrders.map((order) => {
                         const isBeingDragged = draggedOrderId === order.id;
-                        const owner = USERS.find(u => u.id === order.ownerId);
+                        const owner = users.find(u => u.id === order.ownerId);
                         
                         // Date Calculations
                         const isOpen = order.status !== OSStatus.CONCLUIDA && order.status !== OSStatus.CANCELADA;
@@ -591,7 +591,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, expenses, onOr
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                             {sortedOrders.map(order => {
-                                const owner = USERS.find(u => u.id === order.ownerId);
+                                const owner = users.find(u => u.id === order.ownerId);
                                 const cost = getOSCost(order.id);
                                 const duration = calculateDuration(order.dateOpened, order.dateClosed);
                                 
