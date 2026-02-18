@@ -2,7 +2,8 @@ node_modules
 dist
 .git
 .gitignore
-.env
+# .env is needed during build so Vite can embed VITE_API_URL into the JS bundle
+# .env
 README.md
 Dockerfile
 .dockerignore
