@@ -499,7 +499,7 @@ const App: React.FC = () => {
 
     const handleUpdateTask = async (updatedTask: PersonalTask) => {
         try {
-            await infrastructureAPI.tasks.update(parseInt(updatedTask.id), {
+            await infrastructureAPI.tasks.update(updatedTask.id, {
                 title: updatedTask.title,
                 status: updatedTask.status,
                 priority: updatedTask.priority,
@@ -526,7 +526,7 @@ const App: React.FC = () => {
 
         try {
             // In mockData it might be different. Let's assume 'status' for new API.
-            await infrastructureAPI.tasks.update(parseInt(taskId), { status: newStatus });
+            await infrastructureAPI.tasks.update(taskId, { status: newStatus });
             setTasks(prev => prev.map(t =>
                 t.id === taskId ? { ...t, status: newStatus } : t
             ));
@@ -541,7 +541,7 @@ const App: React.FC = () => {
             return;
         }
         try {
-            await infrastructureAPI.tasks.delete(parseInt(taskId));
+            await infrastructureAPI.tasks.delete(taskId);
             setTasks(prev => prev.filter(t => t.id !== taskId));
         } catch (e) {
             console.error(e);
