@@ -133,7 +133,7 @@ export interface Expense {
 
 export interface PersonalTask {
   id: string;
-  userId: string; // Each user has their own tasks
+  userId: number; // Each user has their own tasks
   title: string;
   description?: string;
   dueDate?: string; // ISO Date
