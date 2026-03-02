@@ -236,12 +236,12 @@ export const tasksAPI = {
     },
 
 
-    async update(id: number, data: any) {
+    async update(id: string, data: any) {
         return api.put(`/infraestrutura/tasks/${id}`, data);
     },
 
 
-    async delete(id: number) {
+    async delete(id: string) {
         return api.delete(`/infraestrutura/tasks/${id}`);
     }
 
